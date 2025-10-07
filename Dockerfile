@@ -64,4 +64,4 @@ HEALTHCHECK --interval=30s \
   CMD curl -f http://localhost:80/health || exit 1
 
 # Start the application with gunicorn (after waiting for PostgreSQL)
-CMD ["/bin/sh", "-c", "wait-for-db.sh ${DB_HOST:-localhost} ${DB_PORT:-5432} && gunicorn --bind 0.0.0.0:80 --workers 4 --threads 2 --timeout 60 --access-logfile - --error-logfile - 'app.main:create_app()'"]
+CMD ["/bin/bash", "-c", "wait-for-db.sh gunicorn --bind 0.0.0.0:80 --workers 4 --threads 2 --timeout 60 --access-logfile - --error-logfile - 'app.main:create_app()'"]
