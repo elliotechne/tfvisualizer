@@ -160,9 +160,9 @@ variable "docker_registry" {
 }
 
 variable "docker_image" {
-  description = "Docker image name"
+  description = "Docker image name (without registry)"
   type        = string
-  default     = "ghcr.io/elliotechne/tfvisualizer"
+  default     = "elliotechne/tfvisualizer"
 }
 
 variable "docker_tag" {
