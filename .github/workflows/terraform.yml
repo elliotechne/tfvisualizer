@@ -14,7 +14,7 @@ on:
     #   - 'terraform/atlantis/**'
 
 jobs:
-  tf_fmt:
+  tf_apply:
     name: Deploy 
     runs-on: ubuntu-latest
     steps:
@@ -48,7 +48,7 @@ jobs:
         tf_actions_version: 1.13.1
         tf_actions_working_dir: 'do'
         tf_actions_subcommand: 'apply'
-        args: '-var="gh_username=${{ secrets.GH_USERNAME }}" -var="package_registry_pat=${{ secrets.PACKAGE_REGISTRY_PAT }}" -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID}}" -var aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}" -var="argocd_oidc_client_id=${{ secrets.ARGOCD_OIDC_CLIENT_ID }}" -var="argocd_oidc_client_secret=${{ secrets.ARGOCD_OIDC_CLIENT_SECRET }}" -var="sslcom_private_hmac_key=${{ secrets.SSLCOM_PRIVATE_HMAC_KEY }}" -var="sslcom_keyid=${{ secrets.SSLCOM_KEYID }}" -var=sslcom_hmac_key="${{ secrets.SSLCOM_HMAC_KEY }}" -var="do_token=${{ secrets.DO_TOKEN }}" -var="letsencrypt_email"=${{ secrets.LETSENCRYPT_EMAIL }}"'
+        args: '-var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID}}" -var aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}" -var="do_token=${{ secrets.DO_TOKEN }}"'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TF_ACTION_WORKING_DIR: 'terraform'
