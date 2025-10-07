@@ -37,6 +37,6 @@ terraform {
 # Configure the DigitalOcean Provider
 provider "digitalocean" {
   token = var.do_token
-  spaces_access_id  = var.spaces_access_id
+  spaces_access_id  = var.spaces_access_key
   spaces_secret_key = var.spaces_secret_key
 }
