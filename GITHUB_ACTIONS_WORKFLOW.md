@@ -376,6 +376,7 @@ Comment PR with plan output
 **Name:** `terraform-plan`
 **Path:** `terraform/tfplan`
 **Retention:** 5 days
+**Action:** `actions/upload-artifact@v4`
 **Used by:** `terraform-apply` job
 
 **Purpose:** Store the plan output to ensure the exact plan is applied.
@@ -385,6 +386,7 @@ Comment PR with plan output
 **Name:** `terraform-outputs`
 **Path:** `terraform/terraform-outputs.json`
 **Retention:** 30 days
+**Action:** `actions/upload-artifact@v4`
 
 **Purpose:** Store infrastructure outputs (endpoints, IPs, etc.) for debugging and reference.
 
