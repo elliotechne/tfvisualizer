@@ -29,7 +29,7 @@ jobs:
         tf_actions_version: 1.13.1
         tf_actions_working_dir: 'terraform'
         tf_actions_subcommand: 'init'
-        args: '-var="do_token=${{ secrets.DO_TOKEN }}" -backend-config="access_key=${{ secrets.AWS_KEY_ID }}" -backend-config="secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}"'
+        args: '-var="do_token=${{ secrets.DO_TOKEN }}" -backend-config="access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" -backend-config="secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}"'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
