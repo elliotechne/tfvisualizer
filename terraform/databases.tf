@@ -78,9 +78,9 @@ resource "kubernetes_stateful_set" "postgres" {
 
           liveness_probe {
             exec {
-              command = ["pg_isready", "-U", "tfuser", "-d", "tfvisualizer"]
+              command = ["pg_isready", "-U", "postgres"]
             }
-            initial_delay_seconds = 30
+            initial_delay_seconds = 60
             period_seconds        = 10
             timeout_seconds       = 5
             failure_threshold     = 3
@@ -88,9 +88,9 @@ resource "kubernetes_stateful_set" "postgres" {
 
           readiness_probe {
             exec {
-              command = ["pg_isready", "-U", "tfuser", "-d", "tfvisualizer"]
+              command = ["pg_isready", "-U", "postgres"]
             }
-            initial_delay_seconds = 5
+            initial_delay_seconds = 30
             period_seconds        = 5
             timeout_seconds       = 3
             failure_threshold     = 3

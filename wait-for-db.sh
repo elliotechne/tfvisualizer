@@ -24,23 +24,38 @@ fi
 
 echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
 
-# Wait for PostgreSQL to be ready
+# Wait for PostgreSQL to be ready (accepting connections)
 for i in {1..60}; do
-  if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
-    echo "PostgreSQL is up and ready!"
+  # First check if PostgreSQL is accepting connections at all
+  if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
+    echo "PostgreSQL is accepting connections!"
 
-    # Run database migrations if flask is available
-    if command -v flask &> /dev/null; then
-      echo "Running database migrations..."
-      flask db upgrade || echo "Warning: Migration failed or no migrations to run"
-    fi
+    # Now try to connect to the specific database
+    # Give it a few more seconds for database initialization
+    for j in {1..10}; do
+      if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
+        echo "Database '$DB_NAME' is ready!"
 
-    # Execute the main command (remaining arguments)
-    if [ $# -gt 0 ]; then
-      exec "$@"
-    else
-      exit 0
-    fi
+        # Run database migrations if flask is available
+        if command -v flask &> /dev/null; then
+          echo "Running database migrations..."
+          flask db upgrade || echo "Warning: Migration failed or no migrations to run"
+        fi
+
+        # Execute the main command (remaining arguments)
+        if [ $# -gt 0 ]; then
+          exec "$@"
+        else
+          exit 0
+        fi
+      fi
+
+      echo "Waiting for database '$DB_NAME' to be created - attempt $j/10"
+      sleep 2
+    done
+
+    echo "ERROR: Database '$DB_NAME' was not created"
+    exit 1
   fi
 
   echo "PostgreSQL is unavailable - attempt $i/60"
