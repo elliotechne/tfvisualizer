@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tfvisualizer-app
+  namespace: tfvisualizer
+  labels:
+    app: tfvisualizer
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tfvisualizer
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: tfvisualizer
+        environment: production
+    spec:
+      containers:
+      - name: tfvisualizer
+        image: ghcr.io/elliotechne/tfvisualizer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: tfvisualizer-config
+        - configMapRef:
+            name: tfvisualizer-config
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: docker-registry-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tfvisualizer-service
+  namespace: tfvisualizer
+  annotations:
+    service.beta.kubernetes.io/do-loadbalancer-name: "tfvisualizer-production-lb"
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: tfvisualizer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tfvisualizer-hpa
+  namespace: tfvisualizer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tfvisualizer-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tfvisualizer-pdb
+  namespace: tfvisualizer
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: tfvisualizer

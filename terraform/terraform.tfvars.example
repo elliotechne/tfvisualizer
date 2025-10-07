@@ -1,0 +1,58 @@
+# DigitalOcean Token
+do_token = "dop_v1_your_token_here"
+
+# Region
+region = "nyc3"
+
+# Project settings
+project_name = "tfvisualizer"
+environment  = "production"
+
+# Kubernetes settings
+kubernetes_version    = "1.28.2-do.0"
+kubernetes_node_size  = "s-2vcpu-4gb"
+kubernetes_node_count = 2
+kubernetes_autoscale  = true
+kubernetes_min_nodes  = 2
+kubernetes_max_nodes  = 5
+
+# Application settings
+app_replicas     = 2
+app_min_replicas = 2
+app_max_replicas = 10
+
+# Database settings (running on Kubernetes)
+postgres_password     = "secure-postgres-password-here"
+postgres_storage_size = "20Gi"
+redis_password        = "secure-redis-password-here"
+redis_storage_size    = "5Gi"
+
+# Feature flags
+enable_backups    = true
+enable_monitoring = true
+
+# Domain
+domain_name = "tfvisualizer.com"
+
+# Monitoring
+alert_email = "alerts@tfvisualizer.com"
+
+# Docker Registry (GitHub Container Registry)
+docker_registry          = "ghcr.io"
+docker_image             = "ghcr.io/elliotechne/tfvisualizer"
+docker_tag               = "latest"
+docker_registry_username = "elliotechne"
+docker_registry_password = "ghp_your_github_personal_access_token"
+docker_registry_email    = "your-email@example.com"
+
+# Application secrets
+secret_key             = "your-secret-key-min-32-chars"
+jwt_secret             = "your-jwt-secret-min-32-chars"
+stripe_secret_key      = "sk_live_your_key"
+stripe_publishable_key = "pk_live_your_key"
+stripe_webhook_secret  = "whsec_your_secret"
+stripe_price_id_pro    = "price_your_id"
+
+# Spaces credentials
+spaces_access_key = "your_spaces_access_key"
+spaces_secret_key = "your_spaces_secret_key"

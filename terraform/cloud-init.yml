@@ -1,0 +1,138 @@
+#cloud-config
+# Cloud-init configuration for TFVisualizer application droplet
+
+packages:
+  - docker.io
+  - docker-compose
+  - curl
+  - git
+
+package_update: true
+package_upgrade: true
+
+runcmd:
+  # Start and enable Docker
+  - systemctl start docker
+  - systemctl enable docker
+
+  # Add default user to docker group
+  - usermod -aG docker ubuntu || usermod -aG docker root
+
+  # Pull TFVisualizer Docker image
+  - docker pull tfvisualizer:latest || echo "Docker image not available, will be deployed via CI/CD"
+
+  # Create application directory
+  - mkdir -p /opt/tfvisualizer
+  - cd /opt/tfvisualizer
+
+  # Create environment file placeholder (will be populated by CI/CD)
+  - |
+    cat > /opt/tfvisualizer/.env.example << 'EOF'
+    FLASK_ENV=production
+    PORT=80
+    SECRET_KEY=change_in_production
+    JWT_SECRET=change_in_production
+
+    DATABASE_URL=postgresql://user:pass@host:5432/tfvisualizer
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_NAME=tfvisualizer
+    DB_USER=tfuser
+    DB_PASSWORD=change_in_production
+
+    REDIS_URL=redis://localhost:6379
+    REDIS_HOST=localhost
+    REDIS_PORT=6379
+
+    STRIPE_SECRET_KEY=sk_live_your_key
+    STRIPE_PUBLISHABLE_KEY=pk_live_your_key
+    STRIPE_WEBHOOK_SECRET=whsec_your_secret
+    STRIPE_PRICE_ID_PRO=price_your_id
+    EOF
+
+  # Create systemd service for TFVisualizer
+  - |
+    cat > /etc/systemd/system/tfvisualizer.service << 'EOF'
+    [Unit]
+    Description=TFVisualizer Application
+    After=docker.service
+    Requires=docker.service
+
+    [Service]
+    Type=simple
+    Restart=always
+    RestartSec=10
+    WorkingDirectory=/opt/tfvisualizer
+    EnvironmentFile=/opt/tfvisualizer/.env
+    ExecStartPre=-/usr/bin/docker stop tfvisualizer-app
+    ExecStartPre=-/usr/bin/docker rm tfvisualizer-app
+    ExecStart=/usr/bin/docker run --name tfvisualizer-app \
+      -p 80:80 \
+      --env-file /opt/tfvisualizer/.env \
+      tfvisualizer:latest
+    ExecStop=/usr/bin/docker stop tfvisualizer-app
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+  # Enable but don't start service (will be started after deployment)
+  - systemctl daemon-reload
+  - systemctl enable tfvisualizer.service
+
+  # Configure firewall
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Setup logging
+  - mkdir -p /var/log/tfvisualizer
+  - chmod 755 /var/log/tfvisualizer
+
+write_files:
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    permissions: '0644'
+
+  - path: /opt/tfvisualizer/README.md
+    content: |
+      # TFVisualizer Droplet
+
+      This droplet runs the TFVisualizer application.
+
+      ## Deployment
+
+      The application is deployed via GitHub Actions CI/CD.
+
+      ## Manual Commands
+
+      ```bash
+      # View logs
+      docker logs -f tfvisualizer-app
+
+      # Restart service
+      systemctl restart tfvisualizer
+
+      # Check status
+      systemctl status tfvisualizer
+
+      # Pull latest image
+      docker pull tfvisualizer:latest
+
+      # Restart with new image
+      systemctl restart tfvisualizer
+      ```
+    permissions: '0644'
+
+final_message: |
+  TFVisualizer droplet initialization complete!
+  Cloud-init finished at $TIMESTAMP
+  Application: ${project_name}-${environment}

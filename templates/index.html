@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFVisualizer - Visual Terraform Infrastructure Designer</title>
+  <meta name="description" content="Design, visualize, and optimize your Terraform infrastructure with drag-and-drop simplicity. Real-time cost estimation, module support, and instant code generation.">
+
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    nav {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: #4a5568;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #667eea;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 100px 24px;
+      text-align: center;
+      color: white;
+    }
+
+    .hero-content {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: 56px;
+      font-weight: bold;
+      margin-bottom: 24px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      font-size: 22px;
+      margin-bottom: 40px;
+      opacity: 0.95;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero .btn {
+      font-size: 18px;
+      padding: 14px 32px;
+    }
+
+    /* Features Section */
+    .features {
+      background: white;
+      padding: 80px 24px;
+    }
+
+    .features-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 42px;
+      font-weight: bold;
+      margin-bottom: 60px;
+      color: #1a202c;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+    }
+
+    .feature-card {
+      text-align: center;
+      padding: 32px;
+      border-radius: 12px;
+      background: #f7fafc;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+    }
+
+    .feature-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      color: #2d3748;
+    }
+
+    .feature-card p {
+      color: #718096;
+      font-size: 16px;
+    }
+
+    /* Pricing Section */
+    .pricing {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 80px 24px;
+    }
+
+    .pricing-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+      margin-top: 60px;
+    }
+
+    .pricing-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .pricing-card.featured {
+      border: 3px solid #667eea;
+      transform: scale(1.05);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: #667eea;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .pricing-card h3 {
+      font-size: 28px;
+      margin-bottom: 16px;
+      color: #2d3748;
+    }
+
+    .pricing-price {
+      font-size: 48px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .pricing-price span {
+      font-size: 20px;
+      color: #718096;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin: 32px 0;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 12px 0;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pricing-features li:before {
+      content: "✓";
+      color: #48bb78;
+      font-weight: bold;
+      font-size: 20px;
+    }
+
+    /* Demo Section */
+    .demo {
+      background: white;
+      padding: 80px 24px;
+    }
+
+    .demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .demo-preview {
+      margin-top: 40px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .demo-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* CTA Section */
+    .cta {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 80px 24px;
+      text-align: center;
+      color: white;
+    }
+
+    .cta h2 {
+      font-size: 42px;
+      margin-bottom: 24px;
+    }
+
+    .cta p {
+      font-size: 20px;
+      margin-bottom: 40px;
+      opacity: 0.95;
+    }
+
+    /* Footer */
+    footer {
+      background: #1a202c;
+      color: white;
+      padding: 60px 24px 24px;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-section h4 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #667eea;
+    }
+
+    .footer-section ul {
+      list-style: none;
+    }
+
+    .footer-section ul li {
+      margin-bottom: 12px;
+    }
+
+    .footer-section a {
+      color: #cbd5e0;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-section a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 24px;
+      border-top: 1px solid #2d3748;
+      color: #718096;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .hero p {
+        font-size: 18px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .pricing-card.featured {
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <span style="font-size: 32px;">🌐</span>
+        <span>TFVisualizer</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#demo">Demo</a>
+        <a href="/login" class="btn btn-secondary">Login</a>
+        <a href="/editor.html" class="btn btn-primary">Try Free</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Visual Terraform Infrastructure Designer</h1>
+      <p>Design, visualize, and optimize your cloud infrastructure with drag-and-drop simplicity. Get real-time cost estimates and production-ready Terraform code instantly.</p>
+      <div class="hero-buttons">
+        <a href="/editor.html" class="btn btn-primary">Start Building Free</a>
+        <a href="#demo" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border-color: white; color: white;">Watch Demo</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="features-container">
+      <h2 class="section-title">Powerful Features for Modern DevOps</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Visual Designer</h3>
+          <p>Drag and drop AWS resources onto a canvas. Build complex infrastructure visually without writing a single line of code.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>Real-time Cost Estimation</h3>
+          <p>See infrastructure costs as you build. Get accurate monthly estimates based on AWS pricing with detailed breakdowns.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Module Support</h3>
+          <p>Use Terraform Registry modules or create your own. Visualize module inputs, outputs, and dependencies.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Import/Export</h3>
+          <p>Import existing .tf files and visualize your current infrastructure. Export designs to production-ready Terraform code.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <h3>Smart Connections</h3>
+          <p>Auto-detect valid resource relationships. Connect VPCs to subnets, instances to security groups with visual links.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Data Sources</h3>
+          <p>Query existing AWS infrastructure. Reference AMIs, VPCs, and other resources with visual data source blocks.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h3>Real-time Collaboration</h3>
+          <p>Work with your team simultaneously. See live cursors, comments, and changes in real-time like Figma.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">✅</div>
+          <h3>Validation & Preview</h3>
+          <p>Validate Terraform syntax before exporting. Preview terraform plan output to catch issues early.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🕒</div>
+          <h3>Version History</h3>
+          <p>Track every change to your infrastructure. Roll back to previous versions with one click.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing" id="pricing">
+    <div class="pricing-container">
+      <h2 class="section-title">Simple, Transparent Pricing</h2>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <div class="pricing-price">$0<span>/month</span></div>
+          <p style="color: #718096; margin-bottom: 24px;">Perfect for learning and small projects</p>
+          <ul class="pricing-features">
+            <li>Up to 3 projects</li>
+            <li>Basic AWS resources</li>
+            <li>Import/Export .tf files</li>
+            <li>Cost estimation</li>
+            <li>Community support</li>
+            <li>Public projects only</li>
+          </ul>
+          <a href="/editor.html" class="btn btn-secondary" style="width: 100%;">Get Started</a>
+        </div>
+
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most Popular</div>
+          <h3>Pro</h3>
+          <div class="pricing-price">$4.99<span>/month</span></div>
+          <p style="color: #718096; margin-bottom: 24px;">Everything you need for production</p>
+          <ul class="pricing-features">
+            <li>Unlimited projects</li>
+            <li>All cloud providers (AWS, Azure, GCP)</li>
+            <li>Module support</li>
+            <li>Data sources</li>
+            <li>Real-time collaboration</li>
+            <li>Version history (30 days)</li>
+            <li>Priority support</li>
+            <li>Export to PNG/SVG</li>
+            <li>Private projects</li>
+          </ul>
+          <button class="btn btn-primary" style="width: 100%;" onclick="startProSubscription()">Start Pro - $4.99/mo</button>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 32px; color: #4a5568;">
+        All plans include automatic updates and new features. Cancel anytime, no questions asked.
+      </p>
+    </div>
+  </section>
+
+  <!-- Demo Section -->
+  <section class="demo" id="demo">
+    <div class="demo-container">
+      <h2 class="section-title">See It In Action</h2>
+      <p style="text-align: center; font-size: 18px; color: #718096; margin-bottom: 40px;">
+        Watch how easy it is to design complex infrastructure visually
+      </p>
+      <div class="demo-preview">
+        <a href="/editor.html">
+          <img src="https://via.placeholder.com/1200x700/667eea/ffffff?text=Interactive+Demo+-+Click+to+Try" alt="TFVisualizer Demo">
+        </a>
+      </div>
+      <div style="text-align: center; margin-top: 32px;">
+        <a href="/editor.html" class="btn btn-primary" style="font-size: 18px; padding: 14px 32px;">Try Interactive Demo</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <h2>Ready to Visualize Your Infrastructure?</h2>
+    <p>Join thousands of DevOps engineers building better infrastructure</p>
+    <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+      <a href="/editor.html" class="btn" style="background: white; color: #667eea; font-size: 18px; padding: 14px 32px;">Start Free Today</a>
+      <button class="btn btn-secondary" style="border-color: white; color: white; font-size: 18px; padding: 14px 32px; background: rgba(255,255,255,0.2);" onclick="startProSubscription()">Go Pro - $4.99/mo</button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-section">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="/editor.html">Try Demo</a></li>
+          <li><a href="/docs">Documentation</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/about">About</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/careers">Careers</a></li>
+          <li><a href="/contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="/docs">Documentation</a></li>
+          <li><a href="/guides">Guides</a></li>
+          <li><a href="/api">API</a></li>
+          <li><a href="/community">Community</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/security">Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 TFVisualizer.com. All rights reserved. Built with ❤️ for DevOps engineers.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Stripe configuration
+    {% if stripe_publishable_key %}
+    const stripe = Stripe('{{ stripe_publishable_key }}');
+    {% endif %}
+
+    // Start Pro subscription
+    async function startProSubscription() {
+      try {
+        // Check if user is logged in
+        const token = localStorage.getItem('access_token');
+
+        if (!token) {
+          // Redirect to login/register
+          window.location.href = '/register?plan=pro';
+          return;
+        }
+
+        // Create checkout session
+        const response = await fetch('/api/subscription/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.url) {
+          // Redirect to Stripe Checkout
+          window.location.href = data.url;
+        } else {
+          alert('Error creating checkout session. Please try again or contact support.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+      }
+    }
+
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
