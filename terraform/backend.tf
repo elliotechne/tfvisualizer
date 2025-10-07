@@ -2,7 +2,7 @@ terraform {
   backend "s3" {
     # DigitalOcean Spaces backend configuration
     # Spaces is S3-compatible
-    endpoint                    = "nyc3.digitaloceanspaces.com"
+    endpoints                   = { s3 = "https://nyc3.digitaloceanspaces.com" }
     region                      = "us-east-1" # Required but not used by Spaces
     bucket                      = "tfvisualizer-terraform-state"
     key                         = "production/terraform.tfstate"

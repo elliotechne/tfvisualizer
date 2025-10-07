@@ -180,10 +180,10 @@ State is stored in **DigitalOcean Spaces** (S3-compatible):
 ```hcl
 terraform {
   backend "s3" {
-    endpoint = "nyc3.digitaloceanspaces.com"
-    region   = "us-east-1"
-    bucket   = "tfvisualizer-terraform-state"
-    key      = "production/terraform.tfstate"
+    endpoints = { s3 = "https://nyc3.digitaloceanspaces.com" }
+    region    = "us-east-1"
+    bucket    = "tfvisualizer-terraform-state"
+    key       = "production/terraform.tfstate"
   }
 }
 ```
