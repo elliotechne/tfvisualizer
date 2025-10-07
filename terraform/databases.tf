@@ -1,3 +1,33 @@
+# PostgreSQL initialization script ConfigMap
+resource "kubernetes_config_map" "postgres_init" {
+  metadata {
+    name      = "postgres-init"
+    namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+  }
+
+  data = {
+    "01-create-postgres-role.sh" = <<-EOT
+      #!/bin/bash
+      set -e
+
+      # Create postgres role if it doesn't exist
+      # This runs during PostgreSQL initialization automatically
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
+            CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD';
+            GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO postgres;
+          END IF;
+        END
+        \$\$;
+      EOSQL
+
+      echo "PostgreSQL role 'postgres' ensured to exist"
+    EOT
+  }
+}
+
 # PostgreSQL StatefulSet
 resource "kubernetes_stateful_set" "postgres" {
   metadata {
@@ -76,24 +106,38 @@ resource "kubernetes_stateful_set" "postgres" {
             mount_path = "/var/lib/postgresql/data"
           }
 
+          volume_mount {
+            name       = "init-script"
+            mount_path = "/docker-entrypoint-initdb.d"
+            read_only  = true
+          }
+
           liveness_probe {
             exec {
-              command = ["pg_isready", "-U", "postgres"]
+              command = ["pg_isready", "-h", "localhost"]
             }
             initial_delay_seconds = 60
             period_seconds        = 10
             timeout_seconds       = 5
-            failure_threshold     = 3
+            failure_threshold     = 6
           }
 
           readiness_probe {
             exec {
-              command = ["pg_isready", "-U", "postgres"]
+              command = ["pg_isready", "-h", "localhost"]
             }
             initial_delay_seconds = 30
-            period_seconds        = 5
-            timeout_seconds       = 3
-            failure_threshold     = 3
+            period_seconds        = 10
+            timeout_seconds       = 5
+            failure_threshold     = 6
+          }
+        }
+
+        volume {
+          name = "init-script"
+          config_map {
+            name         = kubernetes_config_map.postgres_init.metadata[0].name
+            default_mode = "0755"
           }
         }
       }
