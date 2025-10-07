@@ -39,7 +39,7 @@ alert_email = "alerts@tfvisualizer.com"
 
 # Docker Registry (GitHub Container Registry)
 docker_registry          = "ghcr.io"
-docker_image             = "ghcr.io/elliotechne/tfvisualizer"
+docker_image             = "elliotechne/tfvisualizer"
 docker_tag               = "latest"
 docker_registry_username = "elliotechne"
 docker_registry_password = "ghp_your_github_personal_access_token"
