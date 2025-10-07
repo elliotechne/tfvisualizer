@@ -1,3 +1,4 @@
+# test
 terraform {
   backend "s3" {
     # DigitalOcean Spaces backend configuration
@@ -10,8 +11,6 @@ terraform {
     skip_metadata_api_check     = true
     skip_region_validation      = true
     skip_requesting_account_id  = true
-    access_key                  = "foo"
-    secret_key                  = "bar"
 
 
     # Access credentials should be passed via:
