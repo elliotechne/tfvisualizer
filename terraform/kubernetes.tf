@@ -152,7 +152,7 @@ resource "kubernetes_deployment" "app" {
               path = "/health"
               port = 80
             }
-            initial_delay_seconds = 30
+            initial_delay_seconds = 90
             period_seconds        = 10
             timeout_seconds       = 3
             failure_threshold     = 3
