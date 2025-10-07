@@ -26,7 +26,7 @@ variable "environment" {
 variable "kubernetes_version" {
   description = "Kubernetes version for DOKS cluster"
   type        = string
-  default     = "1.28.2-do.0"
+  default     = "1.33.1-do.4"
 }
 
 variable "kubernetes_node_size" {
