@@ -3,12 +3,13 @@ name: Deploy Infrastructure
 on:
   push:
     paths:
-      - 'do/**'
+      - 'terraform/**'
   pull_request:
     paths:
-      - 'do/**'
+      - 'terraform/**'
     branches:
       - master
+      - main
     # paths-ignore:
     #   - 'terraform/atlantis.yaml'
     #   - 'terraform/atlantis/**'
