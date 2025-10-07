@@ -4,18 +4,6 @@ variable "do_token" {
   sensitive   = true
 }
 
-variable "spaces_access_key" {
-  description = "DigitalOcean API access key"
-  type        = string
-  sensitive   = true
-}
-
-variable "spaces_secret_key" {
-  description = "DigitalOcean API secret key"
-  type        = string
-  sensitive   = true
-}
-
 variable "region" {
   description = "DigitalOcean region"
   type        = string
