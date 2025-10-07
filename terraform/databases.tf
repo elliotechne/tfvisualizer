@@ -19,11 +19,16 @@ resource "kubernetes_config_map" "postgres_init" {
             CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD';
             GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO postgres;
           END IF;
+
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN
+            CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD';
+            GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO root;
+          END IF;
         END
         \$\$;
       EOSQL
 
-      echo "PostgreSQL role 'postgres' ensured to exist"
+      echo "PostgreSQL roles 'postgres' and 'root' ensured to exist"
     EOT
   }
 }
