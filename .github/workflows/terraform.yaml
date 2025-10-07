@@ -1,0 +1,57 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    paths:
+      - 'do/**'
+  pull_request:
+    paths:
+      - 'do/**'
+    branches:
+      - master
+    # paths-ignore:
+    #   - 'terraform/atlantis.yaml'
+    #   - 'terraform/atlantis/**'
+
+jobs:
+  tf_fmt:
+    name: Deploy 
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Repo
+      uses: actions/checkout@master
+
+    - name: Terraform Init
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.13.1
+        tf_actions_working_dir: 'do'
+        tf_actions_subcommand: 'init'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TF_ACTION_WORKING_DIR: 'do'
+        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        DIGITALOCEAN_TOKEN:  ${{ secrets.DO_TOKEN }}
+
+    - name: Terraform Validate
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.13.1
+        tf_actions_working_dir: 'do'
+        tf_actions_subcommand: 'validate'
+
+    - name: Terraform Apply
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: 1.13.1
+        tf_actions_working_dir: 'do'
+        tf_actions_subcommand: 'apply'
+        args: '-var="gh_username=${{ secrets.GH_USERNAME }}" -var="package_registry_pat=${{ secrets.PACKAGE_REGISTRY_PAT }}" -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID}}" -var aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}" -var="argocd_oidc_client_id=${{ secrets.ARGOCD_OIDC_CLIENT_ID }}" -var="argocd_oidc_client_secret=${{ secrets.ARGOCD_OIDC_CLIENT_SECRET }}" -var="sslcom_private_hmac_key=${{ secrets.SSLCOM_PRIVATE_HMAC_KEY }}" -var="sslcom_keyid=${{ secrets.SSLCOM_KEYID }}" -var=sslcom_hmac_key="${{ secrets.SSLCOM_HMAC_KEY }}" -var="do_token=${{ secrets.DO_TOKEN }}" -var="letsencrypt_email"=${{ secrets.LETSENCRYPT_EMAIL }}"'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TF_ACTION_WORKING_DIR: 'terraform'
+        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        DIGITALOCEAN_TOKEN:  ${{ secrets.DO_TOKEN }}
