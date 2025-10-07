@@ -141,7 +141,7 @@ resource "kubernetes_service" "postgres" {
     }
 
     type       = "ClusterIP"
-    cluster_ip = "None"  # Headless service for StatefulSet
+    cluster_ip = "None" # Headless service for StatefulSet
   }
 }
 
@@ -285,7 +285,7 @@ resource "kubernetes_service" "redis" {
     }
 
     type       = "ClusterIP"
-    cluster_ip = "None"  # Headless service for StatefulSet
+    cluster_ip = "None" # Headless service for StatefulSet
   }
 }
 

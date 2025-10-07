@@ -1,20 +1,20 @@
 terraform {
   required_version = ">= 1.0"
-  
+
   required_providers {
     digitalocean = {
-      source  = "digitalocean/digitalocean"
+      source = "digitalocean/digitalocean"
     }
     kubernetes = {
-      source  = "hashicorp/kubernetes"
+      source = "hashicorp/kubernetes"
     }
   }
-  
+
   # Optional: Configure remote backend for state
   backend "s3" {
     bucket                      = "tfvisualizer"
     key                         = "staging.tfstate"
-    region                      = "us-east-1"  # Required but ignored by DO Spaces
+    region                      = "us-east-1" # Required but ignored by DO Spaces
     endpoints                   = { s3 = "https://nyc3.digitaloceanspaces.com" }
     skip_credentials_validation = true
     skip_metadata_api_check     = true

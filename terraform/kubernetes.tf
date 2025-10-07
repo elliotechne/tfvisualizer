@@ -1,8 +1,8 @@
 # DigitalOcean Kubernetes Cluster
 resource "digitalocean_kubernetes_cluster" "main" {
-  name    = "${var.project_name}-${var.environment}-k8s"
-  region  = var.region
-  version = var.kubernetes_version
+  name     = "${var.project_name}-${var.environment}-k8s"
+  region   = var.region
+  version  = var.kubernetes_version
   vpc_uuid = digitalocean_vpc.main.id
 
   node_pool {
@@ -46,28 +46,28 @@ resource "kubernetes_secret" "app_config" {
   }
 
   data = {
-    FLASK_ENV                 = var.environment
-    PORT                      = "80"
-    SECRET_KEY                = var.secret_key
-    JWT_SECRET                = var.jwt_secret
-    DATABASE_URL              = "postgresql://tfuser:${var.postgres_password}@postgres.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local:5432/tfvisualizer"
-    DB_HOST                   = "postgres.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local"
-    DB_PORT                   = "5432"
-    DB_NAME                   = "tfvisualizer"
-    DB_USER                   = "tfuser"
-    DB_PASSWORD               = var.postgres_password
-    REDIS_URL                 = "redis://:${var.redis_password}@redis.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local:6379"
-    REDIS_HOST                = "redis.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local"
-    REDIS_PORT                = "6379"
-    REDIS_PASSWORD            = var.redis_password
-    STRIPE_SECRET_KEY         = var.stripe_secret_key
-    STRIPE_PUBLISHABLE_KEY    = var.stripe_publishable_key
-    STRIPE_WEBHOOK_SECRET     = var.stripe_webhook_secret
-    STRIPE_PRICE_ID_PRO       = var.stripe_price_id_pro
-    S3_BUCKET_NAME            = digitalocean_spaces_bucket.files.name
-    AWS_ACCESS_KEY_ID         = var.spaces_access_key
-    AWS_SECRET_ACCESS_KEY     = var.spaces_secret_key
-    AWS_REGION                = var.region
+    FLASK_ENV              = var.environment
+    PORT                   = "80"
+    SECRET_KEY             = var.secret_key
+    JWT_SECRET             = var.jwt_secret
+    DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local:5432/tfvisualizer"
+    DB_HOST                = "postgres.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local"
+    DB_PORT                = "5432"
+    DB_NAME                = "tfvisualizer"
+    DB_USER                = "tfuser"
+    DB_PASSWORD            = var.postgres_password
+    REDIS_URL              = "redis://:${var.redis_password}@redis.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local:6379"
+    REDIS_HOST             = "redis.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local"
+    REDIS_PORT             = "6379"
+    REDIS_PASSWORD         = var.redis_password
+    STRIPE_SECRET_KEY      = var.stripe_secret_key
+    STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
+    STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
+    STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
+    S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
+    AWS_ACCESS_KEY_ID      = var.spaces_access_key
+    AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
+    AWS_REGION             = var.region
   }
 
   type = "Opaque"
@@ -192,13 +192,13 @@ resource "kubernetes_service" "app" {
     name      = "tfvisualizer-service"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     annotations = {
-      "service.beta.kubernetes.io/do-loadbalancer-name"                              = "${var.project_name}-${var.environment}-lb"
-      "service.beta.kubernetes.io/do-loadbalancer-protocol"                          = "http"
-      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-path"                  = "/health"
-      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol"              = "http"
-      "service.beta.kubernetes.io/do-loadbalancer-certificate-id"                    = digitalocean_certificate.cert.id
-      "service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https"            = "true"
-      "service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol"             = "true"
+      "service.beta.kubernetes.io/do-loadbalancer-name"                   = "${var.project_name}-${var.environment}-lb"
+      "service.beta.kubernetes.io/do-loadbalancer-protocol"               = "http"
+      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-path"       = "/health"
+      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol"   = "http"
+      "service.beta.kubernetes.io/do-loadbalancer-certificate-id"         = digitalocean_certificate.cert.id
+      "service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https" = "true"
+      "service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol"  = "true"
     }
   }
 
