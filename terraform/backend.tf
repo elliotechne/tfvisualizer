@@ -10,6 +10,8 @@ terraform {
     skip_metadata_api_check     = true
     skip_region_validation      = true
     skip_requesting_account_id  = true
+    access_key                  = $DO_SPACES_ACCESS_KEY
+    secret_key                  = $DO_SPACES_SECRET_KEY
 
 
     # Access credentials should be passed via:
