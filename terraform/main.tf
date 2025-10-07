@@ -2,7 +2,7 @@
 resource "digitalocean_vpc" "main" {
   name     = "${var.project_name}-${var.environment}-vpc"
   region   = var.region
-  ip_range = "10.0.0.0/16"
+  ip_range = "10.2.0.0/16"
 }
 
 # Kubernetes cluster is defined in kubernetes.tf
