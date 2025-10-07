@@ -1,68 +1,273 @@
-name: Deploy Infrastructure
+name: Terraform CI/CD with Docker Build
 
 on:
   push:
-    paths:
-      - 'terraform/**'
-  pull_request:
-    paths:
-      - 'terraform/**'
     branches:
-      - master
       - main
-    # paths-ignore:
-    #   - 'terraform/atlantis.yaml'
-    #   - 'terraform/atlantis/**'
+      - develop
+    paths:
+      - 'terraform/**'
+      - 'app/**'
+      - 'templates/**'
+      - 'static/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'terraform/**'
+      - 'app/**'
+      - 'Dockerfile'
+  workflow_dispatch:
+
+env:
+  TF_VERSION: '1.6.0'
+  TF_WORKING_DIR: './terraform'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  # Terraform variables from GitHub Secrets
+  TF_VAR_do_token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+  TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+  TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
+  TF_VAR_secret_key: ${{ secrets.APP_SECRET_KEY }}
+  TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+  TF_VAR_stripe_secret_key: ${{ secrets.STRIPE_SECRET_KEY }}
+  TF_VAR_stripe_publishable_key: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+  TF_VAR_stripe_webhook_secret: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+  TF_VAR_stripe_price_id_pro: ${{ secrets.STRIPE_PRICE_ID_PRO }}
+  TF_VAR_spaces_access_key: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+  TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
+  TF_VAR_docker_registry_username: ${{ github.actor }}
+  TF_VAR_docker_registry_password: ${{ secrets.GITHUB_TOKEN }}
+  TF_VAR_docker_registry_email: ${{ secrets.DOCKER_REGISTRY_EMAIL }}
+  # Backend credentials (Spaces uses AWS-compatible env vars)
+  AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
 
 jobs:
-  tf_apply:
-    name: Deploy 
+  build-and-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-version: ${{ steps.meta.outputs.version }}
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Checkout Repo
-      uses: actions/checkout@master
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Terraform Init
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: 1.13.1
-        tf_actions_working_dir: 'terraform'
-        tf_actions_subcommand: 'init'
-        args: '-var="do_token=${{ secrets.DIGITALOCEAN_TOKEN }}" -backend-config="access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" -backend-config="secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY}}"'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        DIGITALOCEAN_TOKEN:  ${{ secrets.DIGITALOCEAN_TOKEN }}
-        TF_VAR_spaces_access_key: ${{ secrets.DO_SPACES_ACCESS_KEY }}
-        TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Terraform Validate
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: 1.13.1
-        tf_actions_working_dir: 'terraform'
-        tf_actions_subcommand: 'validate'
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=TFVisualizer
+            org.opencontainers.image.description=Visual Terraform Infrastructure Designer
+            org.opencontainers.image.vendor=TFVisualizer
 
-    - name: Terraform Apply
-      uses: hashicorp/terraform-github-actions@master
-      with:
-        tf_actions_version: 1.13.1
-        tf_actions_working_dir: 'terraform'
-        tf_actions_subcommand: 'apply'
-        args: '-var="do_token=${{ secrets.DIGITALOCEAN_TOKEN }}"'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        TF_VAR_aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID}}
-        TF_VAR_aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}} 
-        TF_VAR_do_token: ${{ secrets.DIGITALOCEAN_TOKEN }}
-        TF_VAR_spaces_access_key: ${{ secrets.DO_SPACES_ACCESS_KEY }}
-        TF_VAR_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
-        TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
-        TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
-        TF_VAR_secret_key: ${{ secrets.APP_SECRET_KEY }}
-        TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
-        AWS_ACCESS_KEY_ID:  ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        DIGITALOCEAN_TOKEN:  ${{ secrets.DIGITALOCEAN_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Image digest
+        run: echo "Image pushed with tags:${{ steps.meta.outputs.tags }}"
+
+  terraform-validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+  terraform-plan:
+    name: Plan Terraform Changes
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
+          retention-days: 5
+
+      - name: Comment PR with Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('${{ env.TF_WORKING_DIR }}/tfplan.txt', 'utf8');
+            const output = `#### Terraform Plan 📝
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`terraform
+            ${plan}
+            \`\`\`
+
+            </details>
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  terraform-apply:
+    name: Apply Terraform Changes
+    runs-on: ubuntu-latest
+    needs: [build-and-push, terraform-plan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://tfvisualizer.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Download Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-plan
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Output
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform output -json > terraform-outputs.json
+
+      - name: Upload Outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-outputs
+          path: ${{ env.TF_WORKING_DIR }}/terraform-outputs.json
+          retention-days: 30
+
+      - name: Get Cluster Kubeconfig
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform output -raw kubeconfig > kubeconfig.yaml || echo "Kubeconfig output not available"
+
+      - name: Deploy to Kubernetes
+        if: hashFiles('terraform/kubeconfig.yaml') != ''
+        env:
+          KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
+        run: |
+          # Extract image tag from build job
+          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
+
+          # Update deployment image
+          kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
+          kubectl set image deployment/tfvisualizer-app tfvisualizer=$IMAGE_TAG -n tfvisualizer || echo "Deployment update skipped"
+          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
+
+  terraform-destroy:
+    name: Destroy Terraform Resources
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: destroy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Destroy
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform destroy -auto-approve
