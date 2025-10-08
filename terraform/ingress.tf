@@ -4,13 +4,13 @@ resource "kubernetes_ingress_v1" "app" {
     name      = "tfvisualizer-ingress"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     annotations = {
-      "cert-manager.io/cluster-issuer"                   = "zerossl-prod"
-      "nginx.ingress.kubernetes.io/ssl-redirect"         = "true"
-      "nginx.ingress.kubernetes.io/force-ssl-redirect"   = "true"
-      "nginx.ingress.kubernetes.io/proxy-body-size"      = "50m"
+      "cert-manager.io/cluster-issuer"                    = "zerossl-prod"
+      "nginx.ingress.kubernetes.io/ssl-redirect"          = "true"
+      "nginx.ingress.kubernetes.io/force-ssl-redirect"    = "true"
+      "nginx.ingress.kubernetes.io/proxy-body-size"       = "50m"
       "nginx.ingress.kubernetes.io/proxy-connect-timeout" = "60"
-      "nginx.ingress.kubernetes.io/proxy-send-timeout"   = "60"
-      "nginx.ingress.kubernetes.io/proxy-read-timeout"   = "60"
+      "nginx.ingress.kubernetes.io/proxy-send-timeout"    = "60"
+      "nginx.ingress.kubernetes.io/proxy-read-timeout"    = "60"
     }
   }
 
