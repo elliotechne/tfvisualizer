@@ -26,49 +26,24 @@ resource "time_sleep" "wait_for_cert_manager" {
   create_duration = "60s"
 }
 
-# ZeroSSL ClusterIssuer using kubectl provider
-resource "kubectl_manifest" "zerossl_cluster_issuer" {
+# Let's Encrypt Production ClusterIssuer
+resource "kubectl_manifest" "letsencrypt_cluster_issuer" {
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
     metadata:
-      name: zerossl-prod
+      name: letsencrypt-prod
     spec:
       acme:
-        server: https://acme.zerossl.com/v2/DV90
+        server: https://acme-v02.api.letsencrypt.org/directory
         email: ${var.letsencrypt_email}
         privateKeySecretRef:
-          name: zerossl-prod-account-key
-        externalAccountBinding:
-          keyID: ${var.zerossl_eab_kid}
-          keySecretRef:
-            name: zerossl-eab-secret
-            key: secret
-          keyAlgorithm: HS256
+          name: letsencrypt-prod-account-key
         solvers:
         - http01:
             ingress:
               class: nginx
   YAML
 
-  depends_on = [
-    time_sleep.wait_for_cert_manager,
-    kubernetes_secret.zerossl_eab
-  ]
-}
-
-# ZeroSSL EAB secret
-resource "kubernetes_secret" "zerossl_eab" {
-  metadata {
-    name      = "zerossl-eab-secret"
-    namespace = "cert-manager"
-  }
-
-  data = {
-    secret = var.zerossl_eab_hmac_key
-  }
-
-  type = "Opaque"
-
-  depends_on = [helm_release.cert_manager]
+  depends_on = [time_sleep.wait_for_cert_manager]
 }

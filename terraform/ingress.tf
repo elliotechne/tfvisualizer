@@ -4,7 +4,7 @@ resource "kubernetes_ingress_v1" "app" {
     name      = "tfvisualizer-ingress"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     annotations = {
-      "cert-manager.io/cluster-issuer"                    = "zerossl-prod"
+      "cert-manager.io/cluster-issuer"                    = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"          = "false"
       "nginx.ingress.kubernetes.io/force-ssl-redirect"    = "false"
       "nginx.ingress.kubernetes.io/proxy-body-size"       = "50m"
@@ -64,6 +64,6 @@ resource "kubernetes_ingress_v1" "app" {
 
   depends_on = [
     helm_release.nginx_ingress,
-    kubectl_manifest.zerossl_cluster_issuer
+    kubectl_manifest.letsencrypt_cluster_issuer
   ]
 }
