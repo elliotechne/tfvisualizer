@@ -27,6 +27,17 @@ provider "kubernetes" {
   )
 }
 
+# Helm provider configuration
+provider "helm" {
+  kubernetes {
+    host  = digitalocean_kubernetes_cluster.main.endpoint
+    token = digitalocean_kubernetes_cluster.main.kube_config[0].token
+    cluster_ca_certificate = base64decode(
+      digitalocean_kubernetes_cluster.main.kube_config[0].cluster_ca_certificate
+    )
+  }
+}
+
 # Namespace for TFVisualizer
 resource "kubernetes_namespace" "tfvisualizer" {
   metadata {
@@ -191,16 +202,6 @@ resource "kubernetes_service" "app" {
   metadata {
     name      = "tfvisualizer-service"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
-    annotations = {
-      "service.beta.kubernetes.io/do-loadbalancer-name"                   = "${var.project_name}-${var.environment}-lb"
-      "service.beta.kubernetes.io/do-loadbalancer-protocol"               = "http"
-      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-path"       = "/health"
-      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol"   = "http"
-      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-port"       = "8080"
-      "service.beta.kubernetes.io/do-loadbalancer-certificate-id"         = digitalocean_certificate.cert.id
-      "service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https" = "true"
-      "service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol"  = "true"
-    }
   }
 
   spec {
@@ -215,14 +216,7 @@ resource "kubernetes_service" "app" {
       protocol    = "TCP"
     }
 
-    port {
-      name        = "https"
-      port        = 443
-      target_port = 8080
-      protocol    = "TCP"
-    }
-
-    type = "LoadBalancer"
+    type = "ClusterIP"
   }
 }
 
