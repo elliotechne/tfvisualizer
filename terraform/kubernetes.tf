@@ -68,7 +68,7 @@ resource "kubernetes_secret" "app_config" {
 
   data = {
     FLASK_ENV              = var.environment
-    PORT                   = "80"
+    PORT                   = "8080"
     SECRET_KEY             = var.secret_key
     JWT_SECRET             = var.jwt_secret
     DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
@@ -141,7 +141,7 @@ resource "kubernetes_deployment" "app" {
           image = "${var.docker_registry}/${var.docker_image}:${var.docker_tag}"
 
           port {
-            container_port = 80
+            container_port = 8080
             name           = "http"
           }
 
@@ -171,7 +171,7 @@ resource "kubernetes_deployment" "app" {
           liveness_probe {
             http_get {
               path = "/health"
-              port = 80
+              port = 8080
             }
             initial_delay_seconds = 90
             period_seconds        = 10
@@ -182,7 +182,7 @@ resource "kubernetes_deployment" "app" {
           readiness_probe {
             http_get {
               path = "/health"
-              port = 80
+              port = 8080
             }
             initial_delay_seconds = 60
             period_seconds        = 5
@@ -222,7 +222,7 @@ resource "kubernetes_service" "app" {
     port {
       name        = "http"
       port        = 80
-      target_port = 80
+      target_port = 8080
       protocol    = "TCP"
     }
 
@@ -337,7 +337,7 @@ resource "kubernetes_network_policy" "app" {
         }
       }
       ports {
-        port     = "80"
+        port     = "8080"
         protocol = "TCP"
       }
     }
@@ -352,7 +352,7 @@ resource "kubernetes_network_policy" "app" {
         }
       }
       ports {
-        port     = "80"
+        port     = "8080"
         protocol = "TCP"
       }
     }
