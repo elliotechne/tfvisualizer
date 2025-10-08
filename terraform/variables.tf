@@ -241,3 +241,9 @@ variable "spaces_secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "letsencrypt_email" {
+  description = "LE email address"
+  type        = string
+  sensitive   = true
+}
