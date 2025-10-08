@@ -64,6 +64,6 @@ resource "kubernetes_ingress_v1" "app" {
 
   depends_on = [
     helm_release.nginx_ingress,
-    null_resource.zerossl_cluster_issuer
+    kubectl_manifest.zerossl_cluster_issuer
   ]
 }
