@@ -23,43 +23,42 @@ else
 fi
 
 echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+echo "Debug: Testing connection parameters..."
+echo "  Host: $DB_HOST"
+echo "  Port: $DB_PORT"
+echo "  User: $DB_USER"
+echo "  Database: $DB_NAME"
 
 # Wait for PostgreSQL to be ready (accepting connections)
 for i in {1..60}; do
-  # First check if PostgreSQL is accepting connections at all
-  if pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; then
-    echo "PostgreSQL is accepting connections!"
+  # Use netcat to check if port is open
+  if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
+    echo "PostgreSQL port is open!"
 
-    # Now try to connect to the specific database
-    # Give it a few more seconds for database initialization
-    for j in {1..10}; do
-      if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
-        echo "Database '$DB_NAME' is ready!"
+    # Now try to connect using psql
+    if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>&1; then
+      echo "Database '$DB_NAME' is ready!"
 
-        # Run database migrations if flask is available
-        if command -v flask &> /dev/null; then
-          echo "Running database migrations..."
-          flask db upgrade || echo "Warning: Migration failed or no migrations to run"
-        fi
-
-        # Execute the main command (remaining arguments)
-        if [ $# -gt 0 ]; then
-          exec "$@"
-        else
-          exit 0
-        fi
+      # Run database migrations if flask is available
+      if command -v flask &> /dev/null; then
+        echo "Running database migrations..."
+        flask db upgrade || echo "Warning: Migration failed or no migrations to run"
       fi
 
-      echo "Waiting for database '$DB_NAME' to be created - attempt $j/10"
-      sleep 2
-    done
-
-    echo "ERROR: Database '$DB_NAME' was not created"
-    exit 1
+      # Execute the main command (remaining arguments)
+      if [ $# -gt 0 ]; then
+        exec "$@"
+      else
+        exit 0
+      fi
+    else
+      echo "Port open but psql connection failed - attempt $i/60"
+    fi
+  else
+    echo "PostgreSQL is unavailable (port not open) - attempt $i/60"
   fi
 
-  echo "PostgreSQL is unavailable - attempt $i/60"
-  sleep 1
+  sleep 2
 done
 
 echo "ERROR: PostgreSQL did not become available in time"
