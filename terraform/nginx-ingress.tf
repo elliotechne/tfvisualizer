@@ -29,6 +29,11 @@ resource "helm_release" "nginx_ingress" {
   }
 
   set {
+    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/do-loadbalancer-healthcheck-port"
+    value = "80"
+  }
+
+  set {
     name  = "controller.config.use-proxy-protocol"
     value = "true"
   }
