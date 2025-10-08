@@ -20,22 +20,17 @@ resource "helm_release" "nginx_ingress" {
 
   set {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/do-loadbalancer-redirect-http-to-https"
-    value = "true"
+    value = "false"
   }
 
   set {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/do-loadbalancer-enable-proxy-protocol"
-    value = "true"
-  }
-
-  set {
-    name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/do-loadbalancer-healthcheck-port"
-    value = "8080"
+    value = "false"
   }
 
   set {
     name  = "controller.config.use-proxy-protocol"
-    value = "true"
+    value = "false"
   }
 
   set {
