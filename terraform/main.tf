@@ -22,45 +22,16 @@ resource "digitalocean_spaces_bucket" "files" {
   }
 }
 
-# Load Balancer is automatically created by Kubernetes Service (see kubernetes.tf)
-
-# SSL Certificate (Let's Encrypt)
-resource "digitalocean_certificate" "cert" {
-  name    = "${var.project_name}-${var.environment}-cert"
-  type    = "lets_encrypt"
-  domains = [var.domain_name, "www.${var.domain_name}"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+# Load Balancer is automatically created by nginx-ingress-controller (see nginx-ingress.tf)
+# SSL certificates are managed by cert-manager with ZeroSSL (see cert-manager.tf)
 
 # Domain
 resource "digitalocean_domain" "main" {
   name = var.domain_name
 }
 
-# DNS A Record pointing to Kubernetes Load Balancer
-resource "digitalocean_record" "root" {
-  domain = digitalocean_domain.main.id
-  type   = "A"
-  name   = "@"
-  value  = kubernetes_service.app.status.0.load_balancer.0.ingress.0.ip
-  ttl    = 300
-
-  depends_on = [kubernetes_service.app]
-}
-
-# DNS A Record for www subdomain
-resource "digitalocean_record" "www" {
-  domain = digitalocean_domain.main.id
-  type   = "A"
-  name   = "www"
-  value  = kubernetes_service.app.status.0.load_balancer.0.ingress.0.ip
-  ttl    = 300
-
-  depends_on = [kubernetes_service.app]
-}
+# DNS records are now managed by external-dns (see external-dns.tf)
+# external-dns will automatically create A records for Ingress resources
 
 # Project to organize resources
 resource "digitalocean_project" "main" {
