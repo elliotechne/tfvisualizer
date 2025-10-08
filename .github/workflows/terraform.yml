@@ -43,6 +43,7 @@ env:
   TF_VAR_docker_registry_username: ${{ github.actor }}
   TF_VAR_docker_registry_password: ${{ secrets.GHCR_PAT }}
   TF_VAR_docker_registry_email: ${{ secrets.DOCKER_REGISTRY_EMAIL }}
+  TF_VAR_letsencrypt_email: ${{ secrets.LETSENCRYPT_EMAIL }}
   # Backend credentials (Spaces uses AWS-compatible env vars)
   AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
