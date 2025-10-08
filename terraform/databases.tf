@@ -111,21 +111,7 @@ resource "kubernetes_stateful_set" "postgres" {
                 command = [
                   "/bin/sh",
                   "-c",
-                  <<-EOT
-                    # Wait for PostgreSQL to be fully ready
-                    sleep 15
-
-                    # Create root role
-                    PGPASSWORD=$POSTGRES_PASSWORD psql -v ON_ERROR_STOP=0 -U $POSTGRES_USER -d $POSTGRES_DB <<-EOSQL
-                      DO \$\$
-                      BEGIN
-                        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN
-                          CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD';
-                          GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO root;
-                        END IF;
-                      END \$\$;
-                    EOSQL
-                  EOT
+                  "sleep 20 && PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -c \"DO \\$\\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD'; GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO root; END IF; END \\$\\$;\" || true"
                 ]
               }
             }
