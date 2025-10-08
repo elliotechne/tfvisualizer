@@ -338,7 +338,37 @@ resource "kubernetes_network_policy" "app" {
     }
 
     egress {
-      # Allow all egress (database, redis, external APIs)
+      # Allow DNS
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "UDP"
+      }
+    }
+
+    egress {
+      # Allow DNS TCP
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "kube-system"
+          }
+        }
+      }
+      ports {
+        port     = "53"
+        protocol = "TCP"
+      }
+    }
+
+    egress {
+      # Allow all other egress (database, redis, external APIs)
       to {
         ip_block {
           cidr = "0.0.0.0/0"
