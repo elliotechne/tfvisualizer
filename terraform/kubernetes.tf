@@ -196,6 +196,7 @@ resource "kubernetes_service" "app" {
       "service.beta.kubernetes.io/do-loadbalancer-protocol"               = "http"
       "service.beta.kubernetes.io/do-loadbalancer-healthcheck-path"       = "/health"
       "service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol"   = "http"
+      "service.beta.kubernetes.io/do-loadbalancer-healthcheck-port"       = "8080"
       "service.beta.kubernetes.io/do-loadbalancer-certificate-id"         = digitalocean_certificate.cert.id
       "service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https" = "true"
       "service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol"  = "true"
