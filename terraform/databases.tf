@@ -6,16 +6,22 @@ resource "kubernetes_config_map" "postgres_init" {
   }
 
   data = {
-    "01-create-roles.sql" = <<-EOT
-      -- Create postgres role if it doesn't exist
-      CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
+    "01-create-roles.sh" = <<-EOT
+      #!/bin/bash
+      set -e
 
-      -- Create root role if it doesn't exist
-      CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
+      psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
+      EOSQL
 
-      -- Grant privileges
-      GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO postgres;
-      GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO root;
+      psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
+      EOSQL
+
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO postgres;
+        GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO root;
+      EOSQL
     EOT
   }
 }
