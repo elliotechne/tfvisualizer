@@ -323,16 +323,9 @@ resource "kubernetes_network_policy" "app" {
     policy_types = ["Ingress", "Egress"]
 
     ingress {
-      from {
-        namespace_selector {
-          match_labels = {
-            name = kubernetes_namespace.tfvisualizer.metadata[0].name
-          }
-        }
-      }
-
+      # Allow traffic from anywhere (LoadBalancer, other pods)
       ports {
-        port     = "80"
+        port     = "8080"
         protocol = "TCP"
       }
     }
