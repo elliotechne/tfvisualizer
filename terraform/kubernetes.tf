@@ -368,7 +368,16 @@ resource "kubernetes_network_policy" "app" {
     }
 
     egress {
-      # Allow all other egress (database, redis, external APIs)
+      # Allow connections to PostgreSQL and Redis in same namespace
+      to {
+        pod_selector {
+          match_labels = {}
+        }
+      }
+    }
+
+    egress {
+      # Allow all other egress (external APIs)
       to {
         ip_block {
           cidr = "0.0.0.0/0"
