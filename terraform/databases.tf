@@ -10,18 +10,13 @@ resource "kubernetes_config_map" "postgres_init" {
       #!/bin/bash
       set -e
 
+      # Create postgres superuser role
       psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
         CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
-      EOSQL
-
-      psql -v ON_ERROR_STOP=0 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-        CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
-      EOSQL
-
-      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
         GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO postgres;
-        GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO root;
       EOSQL
+
+      echo "PostgreSQL roles created successfully"
     EOT
   }
 }
@@ -108,6 +103,32 @@ resource "kubernetes_stateful_set" "postgres" {
             name       = "init-script"
             mount_path = "/docker-entrypoint-initdb.d"
             read_only  = true
+          }
+
+          lifecycle {
+            post_start {
+              exec {
+                command = [
+                  "/bin/sh",
+                  "-c",
+                  <<-EOT
+                    # Wait for PostgreSQL to be fully ready
+                    sleep 15
+
+                    # Create root role
+                    PGPASSWORD=$POSTGRES_PASSWORD psql -v ON_ERROR_STOP=0 -U $POSTGRES_USER -d $POSTGRES_DB <<-EOSQL
+                      DO \$\$
+                      BEGIN
+                        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN
+                          CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '$POSTGRES_PASSWORD';
+                          GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO root;
+                        END IF;
+                      END \$\$;
+                    EOSQL
+                  EOT
+                ]
+              }
+            }
           }
 
           liveness_probe {
