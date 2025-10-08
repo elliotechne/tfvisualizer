@@ -346,8 +346,8 @@ resource "kubernetes_secret" "database_credentials" {
   }
 
   data = {
-    postgres-password = base64encode(var.postgres_password)
-    redis-password    = base64encode(var.redis_password)
+    postgres-password = var.postgres_password
+    redis-password    = var.redis_password
   }
 
   type = "Opaque"
