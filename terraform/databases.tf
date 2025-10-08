@@ -1,4 +1,4 @@
-# PostgreSQL initialization script ConfigMap
+# PostgreSQL initialization script ConfigMap - test
 resource "kubernetes_config_map" "postgres_init" {
   metadata {
     name      = "postgres-init"
