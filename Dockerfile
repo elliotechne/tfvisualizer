@@ -48,10 +48,10 @@ RUN chown -R appuser:appuser /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     FLASK_APP=app.main:create_app \
-    PORT=80
+    PORT=8080
 
 # Expose application port
-EXPOSE 80
+EXPOSE 8080
 
 # Switch to non-root user
 USER appuser
@@ -61,7 +61,7 @@ HEALTHCHECK --interval=30s \
             --timeout=3s \
             --start-period=40s \
             --retries=3 \
-  CMD curl -f http://localhost:80/health || exit 1
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Start the application with gunicorn (after waiting for PostgreSQL)
-CMD ["/bin/bash", "-c", "wait-for-db.sh gunicorn --bind 0.0.0.0:80 --workers 4 --threads 2 --timeout 60 --access-logfile - --error-logfile - 'app.main:create_app()'"]
+CMD ["/bin/bash", "-c", "wait-for-db.sh gunicorn --bind 0.0.0.0:8080 --workers 4 --threads 2 --timeout 60 --access-logfile - --error-logfile - 'app.main:create_app()'"]
