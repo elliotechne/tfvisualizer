@@ -328,7 +328,29 @@ resource "kubernetes_network_policy" "app" {
     policy_types = ["Ingress", "Egress"]
 
     ingress {
-      # Allow traffic from anywhere (LoadBalancer, other pods)
+      # Allow traffic from nginx-ingress namespace
+      from {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "ingress-nginx"
+          }
+        }
+      }
+      ports {
+        port     = "8080"
+        protocol = "TCP"
+      }
+    }
+
+    ingress {
+      # Allow traffic from within same namespace
+      from {
+        namespace_selector {
+          match_labels = {
+            name = kubernetes_namespace.tfvisualizer.metadata[0].name
+          }
+        }
+      }
       ports {
         port     = "8080"
         protocol = "TCP"
