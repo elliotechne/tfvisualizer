@@ -91,7 +91,3 @@ output "project_id" {
   value       = digitalocean_project.main.id
 }
 
-output "ssl_certificate_id" {
-  description = "SSL Certificate ID"
-  value       = digitalocean_certificate.cert.id
-}
