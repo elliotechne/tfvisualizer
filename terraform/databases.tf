@@ -8,24 +8,10 @@ resource "kubernetes_config_map" "postgres_init" {
   data = {
     "01-create-roles.sql" = <<-EOT
       -- Create postgres role if it doesn't exist
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
-          CREATE ROLE postgres WITH SUPERUSER LOGIN;
-          ALTER ROLE postgres WITH PASSWORD '${var.postgres_password}';
-        END IF;
-      END
-      $$;
+      CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
 
       -- Create root role if it doesn't exist
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN
-          CREATE ROLE root WITH SUPERUSER LOGIN;
-          ALTER ROLE root WITH PASSWORD '${var.postgres_password}';
-        END IF;
-      END
-      $$;
+      CREATE ROLE root WITH SUPERUSER LOGIN PASSWORD '${var.postgres_password}';
 
       -- Grant privileges
       GRANT ALL PRIVILEGES ON DATABASE tfvisualizer TO postgres;
