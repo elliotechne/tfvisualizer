@@ -7,6 +7,7 @@ resource "kubernetes_ingress_v1" "app" {
       "cert-manager.io/cluster-issuer"                    = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/ssl-redirect"          = "false"
       "nginx.ingress.kubernetes.io/force-ssl-redirect"    = "false"
+      "nginx.ingress.kubernetes.io/backend-protocol"      = "HTTP"
       "nginx.ingress.kubernetes.io/proxy-body-size"       = "50m"
       "nginx.ingress.kubernetes.io/proxy-connect-timeout" = "60"
       "nginx.ingress.kubernetes.io/proxy-send-timeout"    = "60"
