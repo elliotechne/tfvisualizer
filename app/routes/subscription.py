@@ -14,6 +14,29 @@ bp = Blueprint('subscription', __name__)
 logger = setup_logger(__name__)
 
 
+@bp.route('/available', methods=['GET'])
+def check_stripe_available():
+    """
+    Check if Stripe payment processing is available
+
+    Returns:
+        JSON with availability status
+    """
+    from flask import current_app
+
+    stripe_configured = bool(
+        current_app.config.get('STRIPE_SECRET_KEY') and
+        current_app.config.get('STRIPE_PUBLISHABLE_KEY') and
+        current_app.config.get('STRIPE_PRICE_ID_PRO') and
+        current_app.config.get('STRIPE_SECRET_KEY') != 'sk_test_YOUR_STRIPE_SECRET_KEY_HERE'
+    )
+
+    return jsonify({
+        'available': stripe_configured,
+        'message': 'Payment processing is available' if stripe_configured else 'Payment processing is not configured'
+    }), 200
+
+
 @bp.route('/create-checkout-session', methods=['POST'])
 @jwt_required()
 def create_checkout_session():
