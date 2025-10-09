@@ -402,7 +402,25 @@
   </section>
 
   <script>
-    const stripe = Stripe('{{ stripe_publishable_key }}');
+    let stripeAvailable = false;
+
+    async function checkStripeAvailability() {
+      try {
+        const response = await fetch('/api/subscription/available');
+        const data = await response.json();
+        stripeAvailable = data.available;
+
+        if (!stripeAvailable) {
+          // Update Pro button to show payment is not available
+          const btn = document.getElementById('proBtn');
+          btn.textContent = 'Payment Not Configured';
+          btn.disabled = true;
+          btn.title = 'Stripe payment processing is not configured on this server';
+        }
+      } catch (error) {
+        console.error('Error checking Stripe availability:', error);
+      }
+    }
 
     async function subscribeToPro() {
       const token = localStorage.getItem('access_token');
@@ -410,6 +428,11 @@
       if (!token) {
         // Not logged in - redirect to registration
         window.location.href = '/register?plan=pro';
+        return;
+      }
+
+      if (!stripeAvailable) {
+        showAlert('Payment processing is not configured. Please contact the administrator.', 'error');
         return;
       }
 
@@ -456,9 +479,12 @@
     }
 
     // Check if user is already logged in and update button text
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Check Stripe availability first
+      await checkStripeAvailability();
+
       const token = localStorage.getItem('access_token');
-      if (!token) {
+      if (!token && stripeAvailable) {
         document.getElementById('proBtn').textContent = 'Sign Up for Pro';
       }
     });

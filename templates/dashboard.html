@@ -287,10 +287,11 @@
         {% if user.subscription_tier == 'pro' and user.stripe_customer_id %}
         <button class="btn-primary" onclick="manageSubscription()">Manage Subscription</button>
         {% elif user.subscription_tier == 'free' %}
-        <a href="/pricing" class="btn-primary">Upgrade to Pro</a>
+        <a href="/pricing" class="btn-primary" id="upgradeBtn">Upgrade to Pro</a>
         {% else %}
         <a href="/pricing" class="btn-primary">View Plans</a>
         {% endif %}
+        <p id="stripeStatus" style="margin-top: 12px; font-size: 14px; color: #718096;"></p>
       </div>
     </div>
 
@@ -368,6 +369,22 @@
       }
     }
 
+    // Check Stripe availability
+    async function checkStripeAvailability() {
+      try {
+        const response = await fetch('/api/subscription/available');
+        const data = await response.json();
+
+        const statusEl = document.getElementById('stripeStatus');
+        if (!data.available && statusEl) {
+          statusEl.textContent = 'ℹ️ Payment processing not configured';
+          statusEl.style.color = '#e67e22';
+        }
+      } catch (error) {
+        console.error('Error checking Stripe availability:', error);
+      }
+    }
+
     // Check if user is authenticated
     window.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('access_token');
@@ -375,6 +392,9 @@
         // Token missing but user expected, redirect to login
         window.location.href = '/login';
       }
+
+      // Check Stripe availability
+      checkStripeAvailability();
     });
   </script>
 </body>
