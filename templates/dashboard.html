@@ -345,7 +345,7 @@
       }
 
       try {
-        const response = await fetch('/api/subscription/portal', {
+        const response = await fetch('/api/subscription/create-portal-session', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -357,7 +357,8 @@
           const data = await response.json();
           window.location.href = data.url;
         } else {
-          alert('Failed to access subscription portal');
+          const data = await response.json();
+          alert(data.error || 'Failed to access subscription portal');
         }
       } catch (error) {
         console.error('Error accessing subscription portal:', error);
