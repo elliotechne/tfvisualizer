@@ -64,8 +64,12 @@ def create_portal_session():
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
+        # Check if user has Pro subscription
+        if user.subscription_tier != 'pro':
+            return jsonify({'error': 'Portal is only available for Pro subscribers'}), 403
+
         if not user.stripe_customer_id:
-            return jsonify({'error': 'No Stripe customer ID found'}), 400
+            return jsonify({'error': 'No Stripe customer ID found. Please contact support.'}), 400
 
         stripe_service = StripeService()
         portal_url = stripe_service.create_portal_session(user)

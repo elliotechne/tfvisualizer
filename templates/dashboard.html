@@ -284,8 +284,10 @@
       <div class="card">
         <h2>💳 Subscription</h2>
         <p>Manage your subscription and billing information</p>
-        {% if user.subscription_status in ['active', 'trialing'] %}
+        {% if user.subscription_tier == 'pro' and user.stripe_customer_id %}
         <button class="btn-primary" onclick="manageSubscription()">Manage Subscription</button>
+        {% elif user.subscription_tier == 'free' %}
+        <a href="/pricing" class="btn-primary">Upgrade to Pro</a>
         {% else %}
         <a href="/pricing" class="btn-primary">View Plans</a>
         {% endif %}
