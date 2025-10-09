@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - TFVisualizer</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Navigation */
+    nav {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: #4a5568;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #667eea;
+    }
+
+    /* Pricing Section */
+    .pricing {
+      padding: 80px 24px;
+    }
+
+    .pricing-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: white;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 60px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 32px;
+      margin-top: 60px;
+    }
+
+    .pricing-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: all 0.3s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .pricing-card.featured {
+      border: 3px solid #667eea;
+      transform: scale(1.05);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      right: 20px;
+      background: #667eea;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .pricing-card h3 {
+      font-size: 28px;
+      margin-bottom: 16px;
+      color: #2d3748;
+    }
+
+    .pricing-price {
+      font-size: 48px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .pricing-price span {
+      font-size: 20px;
+      color: #718096;
+    }
+
+    .pricing-description {
+      color: #718096;
+      margin-bottom: 32px;
+      flex-grow: 1;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin: 32px 0;
+      text-align: left;
+    }
+
+    .pricing-features li {
+      padding: 12px 0;
+      color: #4a5568;
+      display: flex;
+      align-items: start;
+      gap: 12px;
+    }
+
+    .pricing-features li:before {
+      content: "✓";
+      color: #48bb78;
+      font-weight: bold;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-size: 16px;
+      width: 100%;
+      margin-top: auto;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #f7fafc;
+    }
+
+    .btn:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .alert-error {
+      background: #fed7d7;
+      color: #742a2a;
+      border: 1px solid #fc8181;
+    }
+
+    .alert-success {
+      background: #c6f6d5;
+      color: #22543d;
+      border: 1px solid #9ae6b4;
+    }
+
+    /* FAQ Section */
+    .faq {
+      background: white;
+      padding: 80px 24px;
+      margin-top: 60px;
+    }
+
+    .faq-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq h2 {
+      text-align: center;
+      font-size: 36px;
+      margin-bottom: 48px;
+      color: #2d3748;
+    }
+
+    .faq-item {
+      margin-bottom: 24px;
+      padding: 24px;
+      background: #f7fafc;
+      border-radius: 12px;
+    }
+
+    .faq-question {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+
+    .faq-answer {
+      color: #4a5568;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .pricing-card.featured {
+        transform: scale(1);
+      }
+
+      .section-title {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#667eea"/>
+          <path d="M16 8L22 12V20L16 24L10 20V12L16 8Z" stroke="white" stroke-width="2" fill="none"/>
+        </svg>
+        TFVisualizer
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/login">Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="pricing">
+    <div class="pricing-container">
+      <h2 class="section-title">Simple, Transparent Pricing</h2>
+      <p class="section-subtitle">Choose the plan that's right for you</p>
+
+      <div id="alertContainer"></div>
+
+      <div class="pricing-grid">
+        <!-- Free Plan -->
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <div class="pricing-price">$0<span>/month</span></div>
+          <p class="pricing-description">Perfect for trying out TFVisualizer and small projects</p>
+          <ul class="pricing-features">
+            <li>Visual Terraform Editor</li>
+            <li>Up to 3 projects</li>
+            <li>Basic AWS resources</li>
+            <li>Export Terraform code</li>
+            <li>Community support</li>
+          </ul>
+          <a href="/register" class="btn btn-secondary">Get Started Free</a>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="pricing-card featured">
+          <div class="pricing-badge">Most Popular</div>
+          <h3>Pro</h3>
+          <div class="pricing-price">$29<span>/month</span></div>
+          <p class="pricing-description">For professionals and growing teams</p>
+          <ul class="pricing-features">
+            <li>Everything in Free</li>
+            <li>Unlimited projects</li>
+            <li>All cloud providers (AWS, GCP, Azure)</li>
+            <li>Advanced resources & modules</li>
+            <li>Real-time cost estimation</li>
+            <li>Team collaboration</li>
+            <li>Version control integration</li>
+            <li>Priority support</li>
+            <li>Export to multiple formats</li>
+          </ul>
+          <button class="btn btn-primary" onclick="subscribeToPro()" id="proBtn">Upgrade to Pro</button>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="pricing-card">
+          <h3>Enterprise</h3>
+          <div class="pricing-price">Custom</div>
+          <p class="pricing-description">For large organizations with specific needs</p>
+          <ul class="pricing-features">
+            <li>Everything in Pro</li>
+            <li>Custom integrations</li>
+            <li>Dedicated support</li>
+            <li>SLA guarantees</li>
+            <li>On-premise deployment</li>
+            <li>Advanced security features</li>
+            <li>Custom training</li>
+            <li>API access</li>
+          </ul>
+          <a href="/contact" class="btn btn-secondary">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="faq-container">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">Can I switch plans later?</div>
+        <div class="faq-answer">Yes! You can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">What payment methods do you accept?</div>
+        <div class="faq-answer">We accept all major credit cards (Visa, MasterCard, American Express) through our secure payment processor, Stripe.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Is there a free trial?</div>
+        <div class="faq-answer">The Free plan is available indefinitely. For the Pro plan, you can start with a 14-day free trial to test all premium features.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Can I cancel anytime?</div>
+        <div class="faq-answer">Absolutely! You can cancel your subscription at any time. You'll retain access until the end of your billing period.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Do you offer refunds?</div>
+        <div class="faq-answer">We offer a 30-day money-back guarantee for annual subscriptions. Monthly subscriptions are non-refundable but can be canceled at any time.</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const stripe = Stripe('{{ stripe_publishable_key }}');
+
+    async function subscribeToPro() {
+      const token = localStorage.getItem('access_token');
+
+      if (!token) {
+        // Not logged in - redirect to registration
+        window.location.href = '/register?plan=pro';
+        return;
+      }
+
+      const btn = document.getElementById('proBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating checkout session...';
+
+      try {
+        const response = await fetch('/api/subscription/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Redirect to Stripe Checkout
+          window.location.href = data.url;
+        } else {
+          showAlert(data.error || 'Failed to create checkout session', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Upgrade to Pro';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlert('An error occurred. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Upgrade to Pro';
+      }
+    }
+
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+      container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    // Check if user is already logged in and update button text
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        document.getElementById('proBtn').textContent = 'Sign Up for Pro';
+      }
+    });
+  </script>
+</body>
+</html>
