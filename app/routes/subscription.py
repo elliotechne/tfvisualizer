@@ -24,6 +24,15 @@ def create_checkout_session():
         JSON with checkout session URL
     """
     try:
+        from flask import current_app
+
+        # Check if Stripe is configured
+        if not current_app.config.get('STRIPE_SECRET_KEY') or not current_app.config.get('STRIPE_PRICE_ID_PRO'):
+            logger.error("Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID_PRO")
+            return jsonify({
+                'error': 'Payment system is not configured. Please contact support.'
+            }), 503
+
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
@@ -44,8 +53,8 @@ def create_checkout_session():
         }), 200
 
     except Exception as e:
-        logger.error(f"Error creating checkout session: {str(e)}")
-        return jsonify({'error': 'Failed to create checkout session'}), 500
+        logger.error(f"Error creating checkout session: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Failed to create checkout session: {str(e)}'}), 500
 
 
 @bp.route('/create-portal-session', methods=['POST'])
