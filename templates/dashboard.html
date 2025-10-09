@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - TFVisualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Navigation */
+    nav {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: #4a5568;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #667eea;
+    }
+
+    .btn-logout {
+      padding: 10px 20px;
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: #c53030;
+      transform: translateY(-2px);
+    }
+
+    /* Main Content */
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    .welcome-card {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 32px;
+    }
+
+    .welcome-card h1 {
+      font-size: 32px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .welcome-card p {
+      color: #718096;
+      font-size: 18px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      color: #1a202c;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      color: #718096;
+      margin-bottom: 16px;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+    }
+
+    .subscription-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: 12px;
+    }
+
+    .badge-active {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .badge-inactive {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .badge-trialing {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+
+    .user-info {
+      background: #f7fafc;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .user-info p {
+      margin: 8px 0;
+      color: #4a5568;
+    }
+
+    .user-info strong {
+      color: #1a202c;
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .alert-warning {
+      background: #fef3c7;
+      color: #78350f;
+      border: 1px solid #fcd34d;
+    }
+
+    .alert-info {
+      background: #dbeafe;
+      color: #1e3a8a;
+      border: 1px solid #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#667eea"/>
+          <path d="M16 8L22 12V20L16 24L10 20V12L16 8Z" stroke="white" stroke-width="2" fill="none"/>
+        </svg>
+        TFVisualizer
+      </a>
+      <div class="nav-links">
+        <a href="/editor">Editor</a>
+        <a href="/dashboard">Dashboard</a>
+        <button onclick="logout()" class="btn-logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    {% if user %}
+    <div class="welcome-card">
+      <h1>
+        Welcome back, {{ user.email }}!
+        {% if user.subscription_status == 'active' %}
+        <span class="subscription-badge badge-active">Active Subscription</span>
+        {% elif user.subscription_status == 'trialing' %}
+        <span class="subscription-badge badge-trialing">Trial Period</span>
+        {% else %}
+        <span class="subscription-badge badge-inactive">No Active Subscription</span>
+        {% endif %}
+      </h1>
+      <p>Manage your Terraform infrastructure projects and subscription</p>
+
+      <div class="user-info">
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Subscription Status:</strong> {{ user.subscription_status or 'None' }}</p>
+        {% if user.subscription_tier %}
+        <p><strong>Subscription Tier:</strong> {{ user.subscription_tier }}</p>
+        {% endif %}
+        <p><strong>Member Since:</strong> {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
+      </div>
+    </div>
+
+    {% if user.subscription_status not in ['active', 'trialing'] %}
+    <div class="alert alert-warning">
+      <strong>⚠️ No Active Subscription</strong>
+      <p>You need an active subscription to access the Terraform editor. Choose a plan to get started!</p>
+    </div>
+    {% endif %}
+
+    <div class="cards-grid">
+      <div class="card">
+        <h2>🎨 Terraform Editor</h2>
+        <p>Design and visualize your infrastructure with our drag-and-drop editor</p>
+        {% if user.subscription_status in ['active', 'trialing'] %}
+        <a href="/editor" class="btn-primary">Open Editor</a>
+        {% else %}
+        <a href="/pricing" class="btn-primary">Subscribe to Access</a>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>📊 My Projects</h2>
+        <p>View and manage all your infrastructure projects</p>
+        <button class="btn-primary" onclick="loadProjects()">View Projects</button>
+      </div>
+
+      <div class="card">
+        <h2>💳 Subscription</h2>
+        <p>Manage your subscription and billing information</p>
+        {% if user.subscription_status in ['active', 'trialing'] %}
+        <button class="btn-primary" onclick="manageSubscription()">Manage Subscription</button>
+        {% else %}
+        <a href="/pricing" class="btn-primary">View Plans</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+      <strong>ℹ️ Please log in</strong>
+      <p>You need to be logged in to access the dashboard.</p>
+    </div>
+    <div class="welcome-card">
+      <h1>Welcome to TFVisualizer</h1>
+      <p>Please log in to access your dashboard</p>
+      <a href="/login" class="btn-primary" style="margin-top: 16px;">Login</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function logout() {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+    }
+
+    async function loadProjects() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/projects', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const projects = await response.json();
+          alert(`You have ${projects.length} project(s). Project management UI coming soon!`);
+        } else {
+          alert('Failed to load projects');
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        alert('Error loading projects');
+      }
+    }
+
+    async function manageSubscription() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/subscription/portal', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          window.location.href = data.url;
+        } else {
+          alert('Failed to access subscription portal');
+        }
+      } catch (error) {
+        console.error('Error accessing subscription portal:', error);
+        alert('Error accessing subscription portal');
+      }
+    }
+
+    // Check if user is authenticated
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token && {{ 'true' if user else 'false' }}) {
+        // Token missing but user expected, redirect to login
+        window.location.href = '/login';
+      }
+    });
+  </script>
+</body>
+</html>

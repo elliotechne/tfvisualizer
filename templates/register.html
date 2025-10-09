@@ -215,12 +215,18 @@
 
           // Redirect after 1 second
           setTimeout(() => {
+            // Force reload to ensure cookies are set
+            if (!document.cookie.includes("access_token_cookie")) {
+              console.log("Cookies not set, redirecting to login");
+              window.location.href = "/login?registered=true";
+              return;
+            }
             if (plan === 'pro') {
               window.location.href = '/dashboard?upgrade=pro';
             } else {
               window.location.href = '/editor';
             }
-          }, 1000);
+          }, 2000);
         } else {
           formError.textContent = data.error || 'Registration failed. Please try again.';
           formError.style.display = 'block';
