@@ -18,7 +18,10 @@ class StripeService:
 
     def __init__(self):
         """Initialize Stripe with API key"""
-        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+        api_key = current_app.config.get('STRIPE_SECRET_KEY')
+        if not api_key or api_key == 'sk_test_YOUR_STRIPE_SECRET_KEY_HERE':
+            raise ValueError("Stripe API key is not configured")
+        stripe.api_key = api_key
 
     def create_customer(self, user: User) -> str:
         """
