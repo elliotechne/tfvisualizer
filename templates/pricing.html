@@ -432,11 +432,12 @@
       }
 
       if (!stripeAvailable) {
-        showAlert('Payment processing is not configured. Please contact the administrator.', 'error');
+        showAlert('Payment processing is not configured. Please contact the administrator to set up Stripe.', 'error');
         return;
       }
 
       const btn = document.getElementById('proBtn');
+      const originalText = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Creating checkout session...';
 
@@ -449,21 +450,24 @@
           }
         });
 
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+          throw new Error(data.error || `Server returned ${response.status}`);
+        }
+
         const data = await response.json();
 
-        if (response.ok) {
+        if (data.url) {
           // Redirect to Stripe Checkout
           window.location.href = data.url;
         } else {
-          showAlert(data.error || 'Failed to create checkout session', 'error');
-          btn.disabled = false;
-          btn.textContent = 'Upgrade to Pro';
+          throw new Error('No checkout URL received');
         }
       } catch (error) {
-        console.error('Error:', error);
-        showAlert('An error occurred. Please try again.', 'error');
+        console.error('Checkout error:', error);
+        showAlert(error.message || 'Failed to create checkout session. Please try again.', 'error');
         btn.disabled = false;
-        btn.textContent = 'Upgrade to Pro';
+        btn.textContent = originalText;
       }
     }
 
