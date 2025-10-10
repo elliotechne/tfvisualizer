@@ -46,19 +46,19 @@ def create_checkout_session():
     Returns:
         JSON with checkout session URL
     """
+    from flask import current_app
+
+    # Check if Stripe is configured
+    stripe_key = current_app.config.get('STRIPE_SECRET_KEY')
+    stripe_price = current_app.config.get('STRIPE_PRICE_ID_PRO')
+
+    if not stripe_key or not stripe_price or stripe_key == 'sk_test_YOUR_STRIPE_SECRET_KEY_HERE':
+        logger.error("Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID_PRO")
+        return jsonify({
+            'error': 'Payment system is not configured. Please contact support.'
+        }), 503
+
     try:
-        from flask import current_app
-
-        # Check if Stripe is configured
-        stripe_key = current_app.config.get('STRIPE_SECRET_KEY')
-        stripe_price = current_app.config.get('STRIPE_PRICE_ID_PRO')
-
-        if not stripe_key or not stripe_price or stripe_key == 'sk_test_YOUR_STRIPE_SECRET_KEY_HERE':
-            logger.error("Stripe is not configured. Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID_PRO")
-            return jsonify({
-                'error': 'Payment system is not configured. Please contact support.'
-            }), 503
-
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
@@ -69,14 +69,8 @@ def create_checkout_session():
         if user.subscription_tier == 'pro' and user.subscription_status == 'active':
             return jsonify({'error': 'User already has an active Pro subscription'}), 400
 
-        try:
-            stripe_service = StripeService()
-            session_data = stripe_service.create_checkout_session(user)
-        except ValueError as ve:
-            logger.error(f"Stripe configuration error: {str(ve)}")
-            return jsonify({
-                'error': 'Payment system is not configured. Please contact support.'
-            }), 503
+        stripe_service = StripeService()
+        session_data = stripe_service.create_checkout_session(user)
 
         return jsonify({
             'success': True,
@@ -84,9 +78,16 @@ def create_checkout_session():
             'url': session_data['url']
         }), 200
 
+    except ValueError as ve:
+        logger.error(f"Stripe configuration error: {str(ve)}")
+        return jsonify({
+            'error': 'Payment system is not configured. Please contact support.'
+        }), 503
     except Exception as e:
         logger.error(f"Error creating checkout session: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Failed to create checkout session: {str(e)}'}), 500
+        return jsonify({
+            'error': 'Payment system is not configured. Please contact support.'
+        }), 500
 
 
 @bp.route('/create-portal-session', methods=['POST'])
