@@ -450,6 +450,16 @@
           }
         });
 
+        if (response.status === 401) {
+          // Token expired or invalid - redirect to login
+          localStorage.removeItem('access_token');
+          showAlert('Your session has expired. Please log in again.', 'error');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+          return;
+        }
+
         if (!response.ok) {
           const data = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
           throw new Error(data.error || `Server returned ${response.status}`);
