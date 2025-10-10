@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TF Visualizer Pro - Multi-Cloud Infrastructure Designer</title>
+
+  <!-- Authentication Check - Redirect if not logged in -->
+  <script>
+    // Check if user is authenticated by calling the API
+    fetch('/api/auth/me', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        // Not authenticated - redirect to login
+        window.location.href = '/login?redirect=/editor';
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data.success) {
+        window.location.href = '/login?redirect=/editor';
+      }
+      // Check subscription status
+      if (data.user && !['active', 'trialing'].includes(data.user.subscription_status)) {
+        window.location.href = '/pricing';
+      }
+    })
+    .catch(error => {
+      // Error checking auth - redirect to login
+      console.error('Auth check failed:', error);
+      window.location.href = '/login?redirect=/editor';
+    });
+  </script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f3e7ff 0%, #e0f2fe 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: bold;
+      color: #1f2937;
+    }
+
+    .cost-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #d1fae5;
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+
+    .cost-amount {
+      font-size: 20px;
+      font-weight: bold;
+      color: #059669;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: #7c3aed;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #6d28d9;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .btn-active {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 250px 1fr 350px;
+      gap: 24px;
+    }
+
+    .palette {
+      overflow-y: auto;
+    }
+
+    .palette h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    .category {
+      margin-bottom: 16px;
+    }
+
+    .category h3 {
+      font-size: 14px;
+      font-weight: bold;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .resource-item {
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+      cursor: grab;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      user-select: none;
+    }
+
+    .resource-item:active {
+      cursor: grabbing;
+    }
+
+    .resource-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .resource-icon {
+      font-size: 24px;
+      margin-right: 8px;
+    }
+
+    .resource-name {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .resource-type {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .canvas-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .canvas-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .canvas-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .connection-banner {
+      background: #dbeafe;
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .connection-banner.active {
+      display: flex;
+    }
+
+    .canvas-viewport {
+      width: 100%;
+      height: 1000px;
+      background: #f3f4f6;
+      border: 4px solid #a78bfa;
+      border-radius: 12px;
+      overflow: auto;
+      position: relative;
+    }
+
+    .canvas {
+      width: 100%;
+      height: 1200px;
+      background: white;
+      border: 4px solid #c4b5fd;
+      border-right: 6px solid #8b5cf6;
+      position: relative;
+      background-image: 
+        linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+        linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .canvas.connection-mode {
+      border-color: #8b5cf6;
+      border-right-color: #6d28d9;
+      border-style: dashed;
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+    }
+
+    .canvas-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      background: rgba(245, 243, 255, 0.3);
+    }
+
+    .canvas-placeholder .inner {
+      background: white;
+      border: 2px dashed #c4b5fd;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .resource-card {
+      position: absolute;
+      width: 200px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .resource-card:active {
+      cursor: grabbing;
+    }
+
+    .resource-card.selected {
+      box-shadow: 0 0 0 4px #7c3aed, 0 8px 24px rgba(0,0,0,0.25);
+    }
+
+    .resource-card.connection-start {
+      box-shadow: 0 0 0 4px #3b82f6, 0 8px 24px rgba(0,0,0,0.25);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .resource-card-header {
+      padding: 12px;
+      border-radius: 8px 8px 0 0;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .resource-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .resource-card-name {
+      font-weight: bold;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .resource-card-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .icon-btn:hover {
+      opacity: 0.8;
+    }
+
+    .resource-card-body {
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      background: white;
+    }
+
+    .resource-detail {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .resource-cost {
+      font-size: 14px;
+      font-weight: bold;
+      color: #059669;
+      margin-top: 8px;
+    }
+
+    .code-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .code-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .code-output {
+      background: #1f2937;
+      color: #10b981;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-y: auto;
+      max-height: 1200px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1f2937;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: #7c3aed;
+    }
+
+    .form-input:disabled {
+      background: #f3f4f6;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .ghost-preview {
+      position: fixed;
+      width: 200px;
+      pointer-events: none;
+      opacity: 0.7;
+      z-index: 999;
+      display: none;
+    }
+
+    .ghost-preview.active {
+      display: block;
+    }
+
+    .tips {
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .tips h3 {
+      font-size: 14px;
+      font-weight: bold;
+      color: #581c87;
+      margin-bottom: 8px;
+    }
+
+    .tips ul {
+      list-style: none;
+      font-size: 13px;
+      color: #6d28d9;
+    }
+
+    .tips li {
+      margin-bottom: 4px;
+    }
+
+    /* Color classes */
+    .bg-blue-500 { background: #3b82f6; }
+    .bg-blue-600 { background: #2563eb; }
+    .bg-purple-500 { background: #8b5cf6; }
+    .bg-purple-600 { background: #7c3aed; }
+    .bg-purple-700 { background: #6d28d9; }
+    .bg-green-500 { background: #10b981; }
+    .bg-green-600 { background: #059669; }
+    .bg-orange-500 { background: #f97316; }
+    .bg-orange-600 { background: #ea580c; }
+    .bg-orange-700 { background: #c2410c; }
+    .bg-orange-800 { background: #9a3412; }
+    .bg-orange-900 { background: #7c2d12; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="title-section">
+          <span style="font-size: 32px;">🌐</span>
+          <div>
+            <h1>TF Visualizer <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 6px; font-size: 16px; vertical-align: middle;">PRO</span></h1>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 4px;">Multi-Cloud Infrastructure Designer</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 12px; color: #6b7280; font-weight: 600;">Cloud Provider</label>
+            <select id="cloudProviderSelect" class="form-select" style="min-width: 150px;" onchange="switchCloudProvider()">
+              <option value="aws">AWS</option>
+              <option value="gcp">Google Cloud (GCP)</option>
+              <option value="azure">Microsoft Azure</option>
+            </select>
+          </div>
+          <div class="cost-badge">
+            <span style="font-size: 20px;">💲</span>
+            <span class="cost-amount" id="totalCost">$0.00/mo</span>
+          </div>
+          <div class="zoom-controls">
+            <button class="btn btn-secondary" onclick="zoomOut()">−</button>
+            <span id="zoomLevel" style="font-family: monospace; min-width: 50px; text-align: center;">100%</span>
+            <button class="btn btn-secondary" onclick="zoomIn()">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- Left: Resource Palette -->
+        <div class="palette">
+          <h2>📦 Available Resources</h2>
+          <div id="resourcePalette"></div>
+          <div style="margin-top: 12px; font-size: 11px; color: #6b7280;">
+            💡 Click and drag resources onto canvas
+          </div>
+        </div>
+
+        <!-- Middle: Canvas -->
+        <div class="canvas-section">
+          <div class="canvas-header">
+            <h2>🎨 Infrastructure Canvas <span id="resourceCount" style="font-size: 14px; font-weight: normal; color: #6b7280;">(0 resources)</span></h2>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" id="connectBtn" onclick="toggleConnectionMode()">
+                🔗 Connect
+              </button>
+              <button class="btn btn-danger" onclick="clearAll()" style="display: none;" id="clearBtn">
+                🗑️ Clear All
+              </button>
+            </div>
+          </div>
+
+          <div class="connection-banner" id="connectionBanner">
+            <p style="font-size: 14px; font-weight: 600; color: #1e40af;" id="connectionMessage">
+              🔗 Connection Mode Active: Click a resource to start
+            </p>
+            <button class="btn btn-primary" style="font-size: 12px; padding: 4px 12px;" onclick="cancelConnection()">
+              Cancel
+            </button>
+          </div>
+
+          <div class="canvas-viewport">
+            <div class="canvas" id="canvas">
+              <div class="canvas-placeholder" id="placeholder">
+                <div class="inner">
+                  <div style="font-size: 64px; margin-bottom: 16px;">🌐</div>
+                  <p style="font-size: 20px; font-weight: bold; color: #7c3aed; margin-bottom: 8px;">Drop Zone</p>
+                  <p style="font-size: 14px; color: #6b7280;">Click and drag resources from the left panel</p>
+                  <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Release here to add them to your infrastructure</p>
+                </div>
+              </div>
+              <svg id="connectionsSvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                <defs>
+                  <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                    <polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
+          <div class="tips" style="margin-top: 12px;">
+            <p style="font-size: 12px; color: #7c3aed; margin-bottom: 8px;">
+              <strong>💡 Tips:</strong> Drag resources, modules, or data sources onto canvas • Click "Connect" to link resources
+            </p>
+            <p style="font-size: 12px; color: #6d28d9;">
+              <strong>🔗 Smart Connections:</strong> VPC→Subnet, Data VPC→Subnet, Module outputs, and more
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Generated Code -->
+        <div class="code-section">
+          <div class="code-header">
+            <h2>💻 Terraform Code</h2>
+            <div style="display: flex; gap: 8px;">
+              <label class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; cursor: pointer;">
+                📤 Import .tf
+                <input type="file" accept=".tf,.hcl" onchange="importTerraformFile(event)" style="display: none;">
+              </label>
+              <button class="btn btn-primary" style="font-size: 12px; padding: 4px 12px; display: none;" id="exportBtn" onclick="exportCode()">
+                ⬇ Export
+              </button>
+            </div>
+          </div>
+          <div class="code-output" id="codeOutput">
+            <div style="color: #6b7280; text-align: center; margin-top: 32px;">
+              Generated Terraform code will appear here
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card tips">
+      <h3 style="font-size: 16px; font-weight: bold; color: #1e40af; margin-bottom: 12px;">💡 How to Use</h3>
+      <ul style="font-size: 14px; color: #3730a3; line-height: 1.8;">
+        <li>• <strong>Add Resources:</strong> Click and hold any resource from the left, then drag it onto the canvas</li>
+        <li>• <strong>Modules:</strong> Drag module blocks to represent reusable Terraform modules with source and version</li>
+        <li>• <strong>Data Sources:</strong> Use data blocks to reference existing infrastructure (AMIs, VPCs, etc.)</li>
+        <li>• <strong>Connect Resources:</strong> Click "Connect" button, then click first resource, then second resource to draw a connection</li>
+        <li>• <strong>Edit:</strong> Click the edit icon (✏️) on any resource to modify its properties, module source, or data filters</li>
+        <li>• <strong>Delete:</strong> Click the trash icon (🗑️) on any resource card to remove it</li>
+        <li>• <strong>Import/Export:</strong> Import existing .tf files or export your visual design to Terraform code</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Edit Resource</h3>
+        <button class="icon-btn" style="color: #6b7280; font-size: 24px;" onclick="closeEditModal()">×</button>
+      </div>
+      <div id="editForm"></div>
+    </div>
+  </div>
+
+  <!-- Ghost Preview -->
+  <div class="ghost-preview" id="ghostPreview"></div>
+
+  <script>
+    // State
+    let resources = [];
+    let connections = [];
+    let positions = {};
+    let nextId = 1;
+    let zoom = 1;
+    let connectionMode = false;
+    let connectionStart = null;
+    let draggingId = null;
+    let draggingFromPalette = null;
+    let dragOffset = { x: 0, y: 0 };
+    let selectedResource = null;
+    let currentCloudProvider = 'aws';
+
+    // Multi-Cloud Pricing (monthly estimates)
+    const pricing = {
+      // AWS
+      aws_instance: { t2_micro: 8.47, t2_small: 16.79, t2_medium: 33.58, t3_micro: 7.59, t3_small: 15.18, t3_medium: 30.37, m5_large: 70.08, m5_xlarge: 140.16 },
+      aws_rds_instance: { db_t2_micro: 15.33, db_t3_micro: 14.02, db_t3_small: 28.47, db_m5_large: 140.16 },
+      aws_s3_bucket: 0.023,
+      aws_ebs_volume: 0.10,
+      aws_vpc: 0,
+      aws_subnet: 0,
+      aws_security_group: 0,
+      aws_lb: 16.20,
+      aws_nat_gateway: 32.85,
+      aws_lambda_function: 0.20,
+      aws_dynamodb_table: 25,
+      aws_elasticache_cluster: 12.40,
+
+      // GCP
+      google_compute_instance: { e2_micro: 7.11, e2_small: 14.23, e2_medium: 28.46, n1_standard_1: 24.27, n1_standard_2: 48.54, n2_standard_2: 57.83 },
+      google_sql_database_instance: { db_f1_micro: 8.85, db_g1_small: 28.08, db_n1_standard_1: 85.41 },
+      google_storage_bucket: 0.020,
+      google_compute_disk: 0.04,
+      google_compute_network: 0,
+      google_compute_subnetwork: 0,
+      google_compute_firewall: 0,
+      google_compute_forwarding_rule: 18.25,
+      google_cloud_run_service: 0.50,
+      google_cloudfunctions_function: 0.40,
+      google_bigtable_instance: 65,
+      google_redis_instance: 11.50,
+
+      // Azure
+      azurerm_virtual_machine: { Standard_B1s: 8.47, Standard_B2s: 33.58, Standard_D2s_v3: 70.08, Standard_D4s_v3: 140.16 },
+      azurerm_mssql_database: { Basic: 4.99, S0: 15, S1: 30, P1: 465 },
+      azurerm_storage_account: 0.023,
+      azurerm_managed_disk: 0.08,
+      azurerm_virtual_network: 0,
+      azurerm_subnet: 0,
+      azurerm_network_security_group: 0,
+      azurerm_lb: 18.25,
+      azurerm_nat_gateway: 38.69,
+      azurerm_function_app: 0.20,
+      azurerm_cosmosdb_account: 23.36,
+      azurerm_redis_cache: 15.77
+    };
+
+    // Resource Templates by Cloud Provider
+    const cloudResourceTemplates = {
+      aws: {
+        Compute: [
+          { type: 'aws_instance', name: 'EC2 Instance', icon: '🖥️', color: 'bg-blue-500', defaultInstance: 't3_medium' },
+          { type: 'aws_lambda_function', name: 'Lambda Function', icon: 'λ', color: 'bg-blue-600' }
+        ],
+        Database: [
+          { type: 'aws_rds_instance', name: 'RDS Database', icon: '🗄️', color: 'bg-purple-500', defaultInstance: 'db_t3_small' },
+          { type: 'aws_dynamodb_table', name: 'DynamoDB Table', icon: '📊', color: 'bg-purple-600' },
+          { type: 'aws_elasticache_cluster', name: 'ElastiCache', icon: '⚡', color: 'bg-purple-700' }
+        ],
+        Storage: [
+          { type: 'aws_s3_bucket', name: 'S3 Bucket', icon: '📦', color: 'bg-green-500' },
+          { type: 'aws_ebs_volume', name: 'EBS Volume', icon: '💾', color: 'bg-green-600', defaultSize: 100 }
+        ],
+        Network: [
+          { type: 'aws_vpc', name: 'VPC', icon: '🌐', color: 'bg-orange-500' },
+          { type: 'aws_subnet', name: 'Subnet', icon: '🔌', color: 'bg-orange-600' },
+          { type: 'aws_security_group', name: 'Security Group', icon: '🔒', color: 'bg-orange-700' },
+          { type: 'aws_lb', name: 'Load Balancer', icon: '⚖️', color: 'bg-orange-800' },
+          { type: 'aws_nat_gateway', name: 'NAT Gateway', icon: '🚪', color: 'bg-orange-900' }
+        ]
+      },
+      gcp: {
+        Compute: [
+          { type: 'google_compute_instance', name: 'Compute Engine VM', icon: '🖥️', color: 'bg-blue-500', defaultInstance: 'e2_medium' },
+          { type: 'google_cloudfunctions_function', name: 'Cloud Functions', icon: 'λ', color: 'bg-blue-600' },
+          { type: 'google_cloud_run_service', name: 'Cloud Run', icon: '🏃', color: 'bg-blue-700' }
+        ],
+        Database: [
+          { type: 'google_sql_database_instance', name: 'Cloud SQL', icon: '🗄️', color: 'bg-purple-500', defaultInstance: 'db_g1_small' },
+          { type: 'google_bigtable_instance', name: 'Cloud Bigtable', icon: '📊', color: 'bg-purple-600' },
+          { type: 'google_redis_instance', name: 'Memorystore Redis', icon: '⚡', color: 'bg-purple-700' }
+        ],
+        Storage: [
+          { type: 'google_storage_bucket', name: 'Cloud Storage', icon: '📦', color: 'bg-green-500' },
+          { type: 'google_compute_disk', name: 'Persistent Disk', icon: '💾', color: 'bg-green-600', defaultSize: 100 }
+        ],
+        Network: [
+          { type: 'google_compute_network', name: 'VPC Network', icon: '🌐', color: 'bg-orange-500' },
+          { type: 'google_compute_subnetwork', name: 'Subnetwork', icon: '🔌', color: 'bg-orange-600' },
+          { type: 'google_compute_firewall', name: 'Firewall Rule', icon: '🔒', color: 'bg-orange-700' },
+          { type: 'google_compute_forwarding_rule', name: 'Load Balancer', icon: '⚖️', color: 'bg-orange-800' }
+        ]
+      },
+      azure: {
+        Compute: [
+          { type: 'azurerm_virtual_machine', name: 'Virtual Machine', icon: '🖥️', color: 'bg-blue-500', defaultInstance: 'Standard_B2s' },
+          { type: 'azurerm_function_app', name: 'Azure Functions', icon: 'λ', color: 'bg-blue-600' }
+        ],
+        Database: [
+          { type: 'azurerm_mssql_database', name: 'SQL Database', icon: '🗄️', color: 'bg-purple-500', defaultInstance: 'S0' },
+          { type: 'azurerm_cosmosdb_account', name: 'Cosmos DB', icon: '📊', color: 'bg-purple-600' },
+          { type: 'azurerm_redis_cache', name: 'Redis Cache', icon: '⚡', color: 'bg-purple-700' }
+        ],
+        Storage: [
+          { type: 'azurerm_storage_account', name: 'Storage Account', icon: '📦', color: 'bg-green-500' },
+          { type: 'azurerm_managed_disk', name: 'Managed Disk', icon: '💾', color: 'bg-green-600', defaultSize: 100 }
+        ],
+        Network: [
+          { type: 'azurerm_virtual_network', name: 'Virtual Network', icon: '🌐', color: 'bg-orange-500' },
+          { type: 'azurerm_subnet', name: 'Subnet', icon: '🔌', color: 'bg-orange-600' },
+          { type: 'azurerm_network_security_group', name: 'Network Security Group', icon: '🔒', color: 'bg-orange-700' },
+          { type: 'azurerm_lb', name: 'Load Balancer', icon: '⚖️', color: 'bg-orange-800' },
+          { type: 'azurerm_nat_gateway', name: 'NAT Gateway', icon: '🚪', color: 'bg-orange-900' }
+        ]
+      }
+    };
+
+    // Get current resource templates based on selected cloud provider
+    function getResourceTemplates() {
+      return cloudResourceTemplates[currentCloudProvider] || cloudResourceTemplates.aws;
+    }
+
+    // Initialize
+    function init() {
+      renderPalette();
+      updateUI();
+      setupEventListeners();
+    }
+
+    function renderPalette() {
+      const palette = document.getElementById('resourcePalette');
+      palette.innerHTML = '';
+
+      const resourceTemplates = getResourceTemplates();
+
+      for (const [category, items] of Object.entries(resourceTemplates)) {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
+        categoryDiv.innerHTML = `<h3>${category}</h3>`;
+
+        items.forEach(template => {
+          const item = document.createElement('div');
+          item.className = `resource-item ${template.color}`;
+          item.innerHTML = `
+            <div style="display: flex; align-items: center;">
+              <span class="resource-icon">${template.icon}</span>
+              <div>
+                <div class="resource-name">${template.name}</div>
+                <div class="resource-type">${template.type}</div>
+              </div>
+            </div>
+          `;
+          item.onmousedown = (e) => startDragFromPalette(e, template);
+          categoryDiv.appendChild(item);
+        });
+
+        palette.appendChild(categoryDiv);
+      }
+    }
+
+    // Switch cloud provider
+    function switchCloudProvider() {
+      const select = document.getElementById('cloudProviderSelect');
+      currentCloudProvider = select.value;
+
+      // Clear canvas and re-render palette
+      if (resources.length > 0) {
+        const confirmed = confirm('Switching cloud providers will clear the current canvas. Continue?');
+        if (!confirmed) {
+          // Revert selection
+          select.value = currentCloudProvider;
+          return;
+        }
+      }
+
+      // Clear all resources
+      resources = [];
+      connections = [];
+      positions = {};
+      selectedResource = null;
+
+      // Re-render
+      renderPalette();
+      updateUI();
+    }
+
+    function setupEventListeners() {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    function startDragFromPalette(e, template) {
+      e.preventDefault();
+      draggingFromPalette = template;
+      updateGhostPreview(e.clientX, e.clientY, template);
+    }
+
+    function handleGlobalMouseMove(e) {
+      if (draggingFromPalette) {
+        updateGhostPreview(e.clientX, e.clientY, draggingFromPalette);
+      } else if (draggingId) {
+        const canvas = document.getElementById('canvas');
+        const rect = canvas.getBoundingClientRect();
+        const newX = (e.clientX - rect.left) / zoom - dragOffset.x;
+        const newY = (e.clientY - rect.top) / zoom - dragOffset.y;
+        positions[draggingId] = { x: Math.max(0, newX), y: Math.max(0, newY) };
+        renderCanvas();
+      }
+    }
+
+    function handleGlobalMouseUp(e) {
+      if (draggingFromPalette) {
+        const canvas = document.getElementById('canvas');
+        const rect = canvas.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const x = (e.clientX - rect.left) / zoom;
+          const y = (e.clientY - rect.top) / zoom;
+          addResource(draggingFromPalette, x, y);
+        }
+        draggingFromPalette = null;
+        document.getElementById('ghostPreview').classList.remove('active');
+      }
+      draggingId = null;
+    }
+
+    function updateGhostPreview(x, y, template) {
+      const ghost = document.getElementById('ghostPreview');
+      ghost.style.left = x + 'px';
+      ghost.style.top = y + 'px';
+      ghost.style.transform = 'translate(-50%, -50%)';
+      ghost.classList.add('active');
+      ghost.innerHTML = `
+        <div class="resource-item ${template.color}" style="box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+          <div style="display: flex; align-items: center;">
+            <span class="resource-icon">${template.icon}</span>
+            <div>
+              <div class="resource-name">${template.name}</div>
+              <div class="resource-type">${template.type}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addResource(template, x, y) {
+      const id = `resource-${nextId++}`;
+      const resource = {
+        id,
+        type: template.type,
+        name: `${template.name.toLowerCase().replace(/\s+/g, '_').replace(/:/g, '').replace(/data_/g, '')}_${nextId - 1}`,
+        displayName: template.name,
+        icon: template.icon,
+        color: template.color,
+        instanceType: template.defaultInstance,
+        volumeSize: template.defaultSize || 0,
+        ami: template.type === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '',
+        isData: template.isData || false,
+        isModule: template.isModule || false,
+        moduleSource: template.isModule ? 'terraform-aws-modules/vpc/aws' : '',
+        moduleVersion: template.isModule ? '~> 5.0' : '',
+        moduleVars: template.isModule ? {} : null,
+        dataFilter: template.isData ? {} : null
+      };
+      resources.push(resource);
+      positions[id] = { x, y };
+      updateUI();
+    }
+
+    function renderCanvas() {
+      const canvas = document.getElementById('canvas');
+      const existingCards = canvas.querySelectorAll('.resource-card');
+      existingCards.forEach(card => card.remove());
+
+      resources.forEach(resource => {
+        const pos = positions[resource.id];
+        const card = document.createElement('div');
+        card.className = 'resource-card';
+        if (selectedResource === resource.id) card.classList.add('selected');
+        if (connectionStart === resource.id) card.classList.add('connection-start');
+        card.style.left = pos.x + 'px';
+        card.style.top = pos.y + 'px';
+        
+        const cost = calculateCost(resource);
+        card.innerHTML = `
+          <div class="resource-card-header ${resource.color}">
+            <div class="resource-card-title">
+              <span style="font-size: 24px;">${resource.icon}</span>
+              <span class="resource-card-name">${resource.name}</span>
+            </div>
+            <div class="resource-card-actions">
+              <button class="icon-btn" onclick="openEditModal('${resource.id}')">✏️</button>
+              <button class="icon-btn" onclick="deleteResource('${resource.id}')">🗑️</button>
+            </div>
+          </div>
+          <div class="resource-card-body">
+            <div class="resource-detail">${resource.type}${resource.isModule ? ' (Module)' : ''}${resource.isData ? ' (Data)' : ''}</div>
+            ${resource.isModule ? `<div class="resource-detail">📦 ${resource.moduleSource || 'Not set'}</div>` : ''}
+            ${resource.isModule && resource.moduleVersion ? `<div class="resource-detail">🏷️ ${resource.moduleVersion}</div>` : ''}
+            ${!resource.isModule && !resource.isData && resource.instanceType ? `<div class="resource-detail">📊 ${resource.instanceType.replace('_', '.')}</div>` : ''}
+            ${!resource.isModule && !resource.isData && resource.ami ? `<div class="resource-detail" style="overflow: hidden; text-overflow: ellipsis;">💿 ${resource.ami}</div>` : ''}
+            ${!resource.isModule && !resource.isData && resource.volumeSize > 0 ? `<div class="resource-detail">💾 ${resource.volumeSize} GB</div>` : ''}
+            ${!resource.isModule && cost > 0 ? `<div class="resource-cost">${cost.toFixed(2)}/mo</div>` : ''}
+          </div>
+        `;
+        
+        card.onmousedown = (e) => handleCardMouseDown(e, resource.id);
+        canvas.appendChild(card);
+      });
+
+      renderConnections();
+      updatePlaceholder();
+    }
+
+    function handleCardMouseDown(e, resourceId) {
+      e.stopPropagation();
+      
+      // Check if click is on a button or in the actions area
+      if (e.target.closest('.icon-btn') || e.target.closest('.resource-card-actions')) {
+        return; // Don't start dragging if clicking on buttons
+      }
+      
+      if (connectionMode) {
+        if (!connectionStart) {
+          connectionStart = resourceId;
+          selectedResource = resourceId;
+          document.getElementById('connectionMessage').textContent = '🔗 Now click the destination resource to complete the connection';
+        } else if (connectionStart !== resourceId) {
+          connections.push({ id: `conn-${Date.now()}`, from: connectionStart, to: resourceId });
+          connectionStart = null;
+          connectionMode = false;
+          document.getElementById('connectBtn').classList.remove('btn-active');
+          document.getElementById('connectBtn').classList.add('btn-secondary');
+          document.getElementById('connectionBanner').classList.remove('active');
+        }
+        renderCanvas();
+        updateUI();
+        return;
+      }
+
+      draggingId = resourceId;
+      selectedResource = resourceId;
+      const pos = positions[resourceId];
+      const canvas = document.getElementById('canvas');
+      const rect = canvas.getBoundingClientRect();
+      dragOffset = {
+        x: (e.clientX - rect.left) / zoom - pos.x,
+        y: (e.clientY - rect.top) / zoom - pos.y
+      };
+      renderCanvas();
+    }
+
+    function renderConnections() {
+      const svg = document.getElementById('connectionsSvg');
+      svg.innerHTML = '<defs><marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><polygon points="0 0, 10 3, 0 6" fill="#8b5cf6" /></marker></defs>';
+
+      connections.forEach(conn => {
+        const fromPos = positions[conn.from];
+        const toPos = positions[conn.to];
+        if (!fromPos || !toPos) return;
+
+        const fromCenter = { x: fromPos.x + 100, y: fromPos.y + 60 };
+        const toCenter = { x: toPos.x + 100, y: toPos.y + 60 };
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', fromCenter.x);
+        line.setAttribute('y1', fromCenter.y);
+        line.setAttribute('x2', toCenter.x);
+        line.setAttribute('y2', toCenter.y);
+        line.setAttribute('stroke', '#8b5cf6');
+        line.setAttribute('stroke-width', '3');
+        line.setAttribute('marker-end', 'url(#arrowhead)');
+        line.style.pointerEvents = 'auto';
+        line.style.cursor = 'pointer';
+        line.onclick = () => {
+          if (confirm('Delete this connection?')) {
+            connections = connections.filter(c => c.id !== conn.id);
+            updateUI();
+          }
+        };
+        g.appendChild(line);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', (fromCenter.x + toCenter.x) / 2);
+        circle.setAttribute('cy', (fromCenter.y + toCenter.y) / 2);
+        circle.setAttribute('r', '8');
+        circle.setAttribute('fill', 'white');
+        circle.setAttribute('stroke', '#8b5cf6');
+        circle.setAttribute('stroke-width', '2');
+        circle.style.pointerEvents = 'auto';
+        circle.style.cursor = 'pointer';
+        circle.onclick = () => {
+          if (confirm('Delete this connection?')) {
+            connections = connections.filter(c => c.id !== conn.id);
+            updateUI();
+          }
+        };
+        g.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', (fromCenter.x + toCenter.x) / 2);
+        text.setAttribute('y', (fromCenter.y + toCenter.y) / 2);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('fill', '#8b5cf6');
+        text.textContent = '×';
+        g.appendChild(text);
+
+        const fromResource = resources.find(r => r.id === conn.from);
+        const toResource = resources.find(r => r.id === conn.to);
+        const label = getConnectionLabel(fromResource, toResource);
+        
+        const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        labelText.setAttribute('x', (fromCenter.x + toCenter.x) / 2);
+        labelText.setAttribute('y', (fromCenter.y + toCenter.y) / 2 - 15);
+        labelText.setAttribute('text-anchor', 'middle');
+        labelText.setAttribute('font-size', '11');
+        labelText.setAttribute('fill', '#6b21a8');
+        labelText.setAttribute('font-weight', '600');
+        labelText.textContent = label;
+        g.appendChild(labelText);
+
+        svg.appendChild(g);
+      });
+    }
+
+    function getConnectionLabel(fromResource, toResource) {
+      if (!fromResource || !toResource) return '';
+      
+      // Handle data source connections
+      if (fromResource.isData) {
+        if (fromResource.type === 'data.aws_vpc' && toResource.type === 'aws_subnet') return 'vpc_id (data)';
+        if (fromResource.type === 'data.aws_subnet' && toResource.type === 'aws_instance') return 'subnet_id (data)';
+        if (fromResource.type === 'data.aws_ami' && toResource.type === 'aws_instance') return 'ami (data)';
+        return 'data reference';
+      }
+      
+      // Handle module connections
+      if (fromResource.isModule) {
+        return 'module output';
+      }
+      if (toResource.isModule) {
+        return 'module input';
+      }
+      
+      // Regular resource connections
+      if (fromResource.type === 'aws_vpc' && toResource.type === 'aws_subnet') return 'vpc_id';
+      if (fromResource.type === 'aws_subnet' && toResource.type === 'aws_instance') return 'subnet_id';
+      if (fromResource.type === 'aws_subnet' && toResource.type === 'aws_rds_instance') return 'subnet_id';
+      if (fromResource.type === 'aws_subnet' && toResource.type === 'aws_lb') return 'subnets';
+      if (fromResource.type === 'aws_security_group' && toResource.type === 'aws_instance') return 'security_groups';
+      if (fromResource.type === 'aws_vpc' && toResource.type === 'aws_security_group') return 'vpc_id';
+      
+      return 'connection';
+    }
+
+    function updatePlaceholder() {
+      document.getElementById('placeholder').style.display = resources.length > 0 ? 'none' : 'block';
+    }
+
+    function calculateCost(resource) {
+      if (resource.type === 'aws_instance' && resource.instanceType) {
+        return pricing.aws_instance[resource.instanceType] || 8.47;
+      } else if (resource.type === 'aws_rds_instance' && resource.instanceType) {
+        return pricing.aws_rds_instance[resource.instanceType] || 14.02;
+      } else if (resource.type === 'aws_ebs_volume' && resource.volumeSize) {
+        return pricing.aws_ebs_volume * resource.volumeSize;
+      } else if (typeof pricing[resource.type] === 'number') {
+        return pricing[resource.type];
+      }
+      return 0;
+    }
+
+    function updateUI() {
+      renderCanvas();
+      updateTotalCost();
+      updateResourceCount();
+      generateCode();
+      updateButtons();
+    }
+
+    function updateTotalCost() {
+      const total = resources.reduce((sum, r) => sum + calculateCost(r), 0);
+      document.getElementById('totalCost').textContent = `$${total.toFixed(2)}/mo`;
+    }
+
+    function updateResourceCount() {
+      document.getElementById('resourceCount').textContent = `(${resources.length} resources)`;
+    }
+
+    function updateButtons() {
+      document.getElementById('clearBtn').style.display = resources.length > 0 ? 'flex' : 'none';
+      document.getElementById('exportBtn').style.display = resources.length > 0 ? 'flex' : 'none';
+    }
+
+    function generateCode() {
+      let code = '';
+      
+      resources.forEach(resource => {
+        // Handle Data Sources
+        if (resource.isData) {
+          const dataType = resource.type.replace('data.', '');
+          code += `data "${dataType}" "${resource.name}" {\n`;
+          
+          if (dataType === 'aws_ami') {
+            code += `  most_recent = true\n`;
+            code += `  owners      = ["amazon"]\n\n`;
+            code += `  filter {\n`;
+            code += `    name   = "name"\n`;
+            code += `    values = ["amzn2-ami-hvm-*-x86_64-gp2"]\n`;
+            code += `  }\n`;
+          } else if (dataType === 'aws_vpc') {
+            code += `  default = true\n`;
+          } else if (dataType === 'aws_availability_zones') {
+            code += `  state = "available"\n`;
+          }
+          
+          code += `}\n\n`;
+          return;
+        }
+        
+        // Handle Modules
+        if (resource.isModule) {
+          const moduleName = resource.type.replace('module.', '');
+          code += `module "${resource.name}" {\n`;
+          code += `  source  = "${resource.moduleSource || 'terraform-aws-modules/vpc/aws'}"\n`;
+          code += `  version = "${resource.moduleVersion || '~> 5.0'}"\n\n`;
+          
+          // Add example variables based on module type
+          if (moduleName === 'vpc' || resource.type === 'module.vpc') {
+            code += `  name = "${resource.displayName}"\n`;
+            code += `  cidr = "10.0.0.0/16"\n\n`;
+            code += `  azs             = ["us-east-1a", "us-east-1b"]\n`;
+            code += `  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]\n`;
+            code += `  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]\n\n`;
+            code += `  enable_nat_gateway = true\n`;
+            code += `  enable_vpn_gateway = false\n`;
+          } else if (moduleName === 'eks' || resource.type === 'module.eks') {
+            code += `  cluster_name    = "${resource.name}"\n`;
+            code += `  cluster_version = "1.28"\n\n`;
+            code += `  vpc_id          = module.vpc.vpc_id\n`;
+            code += `  subnet_ids      = module.vpc.private_subnets\n`;
+          } else if (moduleName === 'rds' || resource.type === 'module.rds') {
+            code += `  identifier = "${resource.name}"\n\n`;
+            code += `  engine            = "postgres"\n`;
+            code += `  engine_version    = "14.7"\n`;
+            code += `  instance_class    = "db.t3.medium"\n`;
+            code += `  allocated_storage = 20\n`;
+          } else {
+            code += `  # Add your module variables here\n`;
+          }
+          
+          code += `}\n\n`;
+          return;
+        }
+        
+        // Handle regular resources
+        code += `resource "${resource.type}" "${resource.name}" {\n`;
+        
+        if (resource.type === 'aws_instance') {
+          code += `  ami           = "${resource.ami || 'ami-04b3c39a8a1c62b76'}"\n`;
+          code += `  instance_type = "${(resource.instanceType || 't3_medium').replace('_', '.')}"\n`;
+          
+          const incomingConns = connections.filter(c => c.to === resource.id);
+          incomingConns.forEach(conn => {
+            const sourceResource = resources.find(r => r.id === conn.from);
+            if (sourceResource) {
+              if (sourceResource.type === 'aws_subnet') {
+                code += `  subnet_id     = aws_subnet.${sourceResource.name}.id\n`;
+              } else if (sourceResource.type === 'aws_vpc') {
+                code += `  vpc_id        = aws_vpc.${sourceResource.name}.id\n`;
+              } else if (sourceResource.type === 'aws_security_group') {
+                code += `  vpc_security_group_ids = [aws_security_group.${sourceResource.name}.id]\n`;
+              } else if (sourceResource.isData && sourceResource.type === 'data.aws_subnet') {
+                code += `  subnet_id     = data.aws_subnet.${sourceResource.name}.id\n`;
+              } else if (sourceResource.isData && sourceResource.type === 'data.aws_ami') {
+                code += `  # ami can reference: data.aws_ami.${sourceResource.name}.id\n`;
+              }
+            }
+          });
+          
+          code += `\n  tags = {\n    Name = "${resource.displayName}"\n  }\n`;
+        } else if (resource.type === 'aws_rds_instance') {
+          code += `  allocated_storage = 20\n`;
+          code += `  engine           = "postgres"\n`;
+          code += `  instance_class   = "${(resource.instanceType || 'db_t3_small').replace('_', '.')}"\n`;
+          code += `  db_name          = "${resource.name}"\n`;
+          
+          const incomingConns = connections.filter(c => c.to === resource.id);
+          incomingConns.forEach(conn => {
+            const sourceResource = resources.find(r => r.id === conn.from);
+            if (sourceResource && sourceResource.type === 'aws_security_group') {
+              code += `  vpc_security_group_ids = [aws_security_group.${sourceResource.name}.id]\n`;
+            }
+          });
+        } else if (resource.type === 'aws_subnet') {
+          code += `  cidr_block = "10.0.1.0/24"\n`;
+          
+          const incomingConns = connections.filter(c => c.to === resource.id);
+          incomingConns.forEach(conn => {
+            const sourceResource = resources.find(r => r.id === conn.from);
+            if (sourceResource && sourceResource.type === 'aws_vpc') {
+              code += `  vpc_id     = aws_vpc.${sourceResource.name}.id\n`;
+            } else if (sourceResource && sourceResource.isData && sourceResource.type === 'data.aws_vpc') {
+              code += `  vpc_id     = data.aws_vpc.${sourceResource.name}.id\n`;
+            }
+          });
+        } else if (resource.type === 'aws_vpc') {
+          code += `  cidr_block = "10.0.0.0/16"\n\n`;
+          code += `  tags = {\n    Name = "${resource.displayName}"\n  }\n`;
+        } else if (resource.type === 'aws_security_group') {
+          code += `  name        = "${resource.name}"\n`;
+          code += `  description = "Security group for ${resource.displayName}"\n`;
+          
+          const incomingConns = connections.filter(c => c.to === resource.id);
+          incomingConns.forEach(conn => {
+            const sourceResource = resources.find(r => r.id === conn.from);
+            if (sourceResource && sourceResource.type === 'aws_vpc') {
+              code += `  vpc_id     = aws_vpc.${sourceResource.name}.id\n`;
+            }
+          });
+        } else if (resource.type === 'aws_s3_bucket') {
+          code += `  bucket = "${resource.name}"\n`;
+        } else if (resource.type === 'aws_ebs_volume') {
+          code += `  availability_zone = "us-east-1a"\n`;
+          code += `  size             = ${resource.volumeSize || 100}\n`;
+        } else if (resource.type === 'aws_lb') {
+          code += `  name               = "${resource.name}"\n`;
+          code += `  internal           = false\n`;
+          code += `  load_balancer_type = "application"\n`;
+          
+          const incomingConns = connections.filter(c => c.to === resource.id);
+          const subnetConns = incomingConns.filter(conn => {
+            const sourceResource = resources.find(r => r.id === conn.from);
+            return sourceResource && sourceResource.type === 'aws_subnet';
+          });
+          
+          if (subnetConns.length > 0) {
+            code += `  subnets            = [\n`;
+            subnetConns.forEach((conn, idx) => {
+              const sourceResource = resources.find(r => r.id === conn.from);
+              code += `    aws_subnet.${sourceResource.name}.id${idx < subnetConns.length - 1 ? ',' : ''}\n`;
+            });
+            code += `  ]\n`;
+          }
+        }
+        
+        code += `}\n\n`;
+      });
+      
+      const output = document.getElementById('codeOutput');
+      output.innerHTML = resources.length === 0 
+        ? '<div style="color: #6b7280; text-align: center; margin-top: 32px;">Generated Terraform code will appear here</div>'
+        : `<pre>${code}</pre>`;
+    }
+
+    function deleteResource(id) {
+      resources = resources.filter(r => r.id !== id);
+      delete positions[id];
+      connections = connections.filter(c => c.from !== id && c.to !== id);
+      if (selectedResource === id) selectedResource = null;
+      updateUI();
+    }
+
+    function clearAll() {
+      if (confirm('Clear all resources?')) {
+        resources = [];
+        connections = [];
+        positions = {};
+        selectedResource = null;
+        connectionMode = false;
+        connectionStart = null;
+        document.getElementById('connectBtn').classList.remove('btn-active');
+        document.getElementById('connectBtn').classList.add('btn-secondary');
+        document.getElementById('connectionBanner').classList.remove('active');
+        updateUI();
+      }
+    }
+
+    function toggleConnectionMode() {
+      connectionMode = !connectionMode;
+      connectionStart = null;
+      const btn = document.getElementById('connectBtn');
+      const banner = document.getElementById('connectionBanner');
+      const canvas = document.getElementById('canvas');
+      
+      if (connectionMode) {
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-active');
+        btn.textContent = '🔗 Connecting...';
+        banner.classList.add('active');
+        canvas.classList.add('connection-mode');
+        document.getElementById('connectionMessage').textContent = '🔗 Connection Mode Active: Click a resource to start';
+      } else {
+        btn.classList.remove('btn-active');
+        btn.classList.add('btn-secondary');
+        btn.textContent = '🔗 Connect';
+        banner.classList.remove('active');
+        canvas.classList.remove('connection-mode');
+      }
+      
+      renderCanvas();
+    }
+
+    function cancelConnection() {
+      connectionMode = false;
+      connectionStart = null;
+      document.getElementById('connectBtn').classList.remove('btn-active');
+      document.getElementById('connectBtn').classList.add('btn-secondary');
+      document.getElementById('connectBtn').textContent = '🔗 Connect';
+      document.getElementById('connectionBanner').classList.remove('active');
+      document.getElementById('canvas').classList.remove('connection-mode');
+      renderCanvas();
+    }
+
+    function openEditModal(id) {
+      const resource = resources.find(r => r.id === id);
+      if (!resource) return;
+
+      const modal = document.getElementById('editModal');
+      const form = document.getElementById('editForm');
+      
+      let formHTML = `
+        <div class="form-group">
+          <label class="form-label">Resource Type</label>
+          <input type="text" class="form-input" value="${resource.type}" disabled>
+        </div>
+      `;
+
+      // Module-specific fields
+      if (resource.isModule) {
+        formHTML += `
+          <div class="form-group">
+            <label class="form-label">Module Name</label>
+            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., my_vpc_module">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Name</label>
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., My VPC Module">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Module Source</label>
+            <input type="text" class="form-input" id="editModuleSource" value="${resource.moduleSource || ''}" placeholder="e.g., terraform-aws-modules/vpc/aws">
+            <div class="form-hint">Registry path or Git URL</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Module Version</label>
+            <input type="text" class="form-input" id="editModuleVersion" value="${resource.moduleVersion || ''}" placeholder="e.g., ~> 5.0">
+            <div class="form-hint">Version constraint</div>
+          </div>
+        `;
+      }
+      // Data source-specific fields
+      else if (resource.isData) {
+        formHTML += `
+          <div class="form-group">
+            <label class="form-label">Data Source Name</label>
+            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., latest_ami">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Name</label>
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., Latest AMI">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Filter/Query</label>
+            <textarea class="form-input" id="editDataFilter" rows="3" placeholder="Add filter attributes here">${JSON.stringify(resource.dataFilter || {}, null, 2)}</textarea>
+            <div class="form-hint">Data source filters (JSON format)</div>
+          </div>
+        `;
+      }
+      // Regular resource fields
+      else {
+        formHTML += `
+          <div class="form-group">
+            <label class="form-label">Resource Name (Terraform ID)</label>
+            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., my_ec2_instance">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Display Name</label>
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., My EC2 Instance">
+          </div>
+        `;
+
+        if (resource.type === 'aws_instance') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">AMI ID</label>
+              <input type="text" class="form-input" id="editAmi" value="${resource.ami || 'ami-04b3c39a8a1c62b76'}" placeholder="e.g., ami-04b3c39a8a1c62b76">
+              <div class="form-hint">Amazon Machine Image ID for the EC2 instance</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Instance Type</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="t2_micro" ${resource.instanceType === 't2_micro' ? 'selected' : ''}>t2.micro - $8.47/mo</option>
+                <option value="t2_small" ${resource.instanceType === 't2_small' ? 'selected' : ''}>t2.small - $16.79/mo</option>
+                <option value="t2_medium" ${resource.instanceType === 't2_medium' ? 'selected' : ''}>t2.medium - $33.58/mo</option>
+                <option value="t3_micro" ${resource.instanceType === 't3_micro' ? 'selected' : ''}>t3.micro - $7.59/mo</option>
+                <option value="t3_small" ${resource.instanceType === 't3_small' ? 'selected' : ''}>t3.small - $15.18/mo</option>
+                <option value="t3_medium" ${resource.instanceType === 't3_medium' ? 'selected' : ''}>t3.medium - $30.37/mo</option>
+                <option value="m5_large" ${resource.instanceType === 'm5_large' ? 'selected' : ''}>m5.large - $70.08/mo</option>
+                <option value="m5_xlarge" ${resource.instanceType === 'm5_xlarge' ? 'selected' : ''}>m5.xlarge - $140.16/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'aws_rds_instance') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Instance Type</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="db_t2_micro" ${resource.instanceType === 'db_t2_micro' ? 'selected' : ''}>db.t2.micro - $15.33/mo</option>
+                <option value="db_t3_micro" ${resource.instanceType === 'db_t3_micro' ? 'selected' : ''}>db.t3.micro - $14.02/mo</option>
+                <option value="db_t3_small" ${resource.instanceType === 'db_t3_small' ? 'selected' : ''}>db.t3.small - $28.47/mo</option>
+                <option value="db_m5_large" ${resource.instanceType === 'db_m5_large' ? 'selected' : ''}>db.m5.large - $140.16/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'aws_ebs_volume') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Volume Size (GB)</label>
+              <input type="number" class="form-input" id="editVolumeSize" value="${resource.volumeSize}" min="1" placeholder="100">
+              <div class="form-hint">Cost: ${(resource.volumeSize * 0.10).toFixed(2)}/mo</div>
+            </div>
+          `;
+        }
+      }
+
+      formHTML += `
+        <div class="modal-actions">
+          <button class="btn btn-primary" style="flex: 1;" onclick="saveEdit('${id}')">💾 Save Changes</button>
+          <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        </div>
+      `;
+
+      form.innerHTML = formHTML;
+      modal.classList.add('active');
+    }
+
+    function saveEdit(id) {
+      const resource = resources.find(r => r.id === id);
+      if (!resource) return;
+
+      resource.name = document.getElementById('editName').value;
+      resource.displayName = document.getElementById('editDisplayName').value;
+      
+      if (resource.isModule) {
+        const sourceInput = document.getElementById('editModuleSource');
+        const versionInput = document.getElementById('editModuleVersion');
+        if (sourceInput) resource.moduleSource = sourceInput.value;
+        if (versionInput) resource.moduleVersion = versionInput.value;
+      } else if (resource.isData) {
+        const filterInput = document.getElementById('editDataFilter');
+        if (filterInput) {
+          try {
+            resource.dataFilter = JSON.parse(filterInput.value);
+          } catch (e) {
+            alert('Invalid JSON in filter field');
+            return;
+          }
+        }
+      } else {
+        if (resource.type === 'aws_instance') {
+          resource.ami = document.getElementById('editAmi').value;
+          resource.instanceType = document.getElementById('editInstanceType').value;
+        } else if (resource.type === 'aws_rds_instance') {
+          resource.instanceType = document.getElementById('editInstanceType').value;
+        } else if (resource.type === 'aws_ebs_volume') {
+          resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
+        }
+      }
+
+      closeEditModal();
+      updateUI();
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    function exportCode() {
+      const code = document.getElementById('codeOutput').textContent;
+      const blob = new Blob([code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'infrastructure.tf';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importTerraformFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const tfCode = e.target.result;
+        parseTerraformCode(tfCode);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseTerraformCode(code) {
+      // Clear existing resources
+      resources = [];
+      connections = [];
+      positions = {};
+      
+      // Parse resource blocks: resource "type" "name" { ... }
+      const resourceRegex = /resource\s+"([^"]+)"\s+"([^"]+)"\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g;
+      let match;
+      let xOffset = 50;
+      let yOffset = 50;
+      let resourcesInRow = 0;
+
+      while ((match = resourceRegex.exec(code)) !== null) {
+        const [, type, name, content] = match;
+        
+        // Find matching template
+        const template = Object.values(resourceTemplates)
+          .flat()
+          .find(t => t.type === type);
+        
+        if (!template) continue;
+
+        const id = `resource-${nextId++}`;
+        
+        // Parse instance type
+        let instanceType = null;
+        if (type === 'aws_instance') {
+          const instanceMatch = content.match(/instance_type\s*=\s*"([^"]+)"/);
+          if (instanceMatch) {
+            instanceType = instanceMatch[1].replace('.', '_');
+          }
+        } else if (type === 'aws_rds_instance') {
+          const instanceMatch = content.match(/instance_class\s*=\s*"([^"]+)"/);
+          if (instanceMatch) {
+            instanceType = instanceMatch[1].replace('.', '_');
+          }
+        }
+
+        // Parse AMI
+        let ami = '';
+        if (type === 'aws_instance') {
+          const amiMatch = content.match(/ami\s*=\s*"([^"]+)"/);
+          if (amiMatch) {
+            ami = amiMatch[1];
+          }
+        }
+
+        // Parse volume size
+        let volumeSize = 0;
+        if (type === 'aws_ebs_volume') {
+          const sizeMatch = content.match(/size\s*=\s*(\d+)/);
+          if (sizeMatch) {
+            volumeSize = parseInt(sizeMatch[1]);
+          }
+        }
+
+        const resource = {
+          id,
+          type,
+          name,
+          displayName: template.name,
+          icon: template.icon,
+          color: template.color,
+          instanceType: instanceType || template.defaultInstance,
+          volumeSize: volumeSize || template.defaultSize || 0,
+          ami: ami || (type === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '')
+        };
+
+        resources.push(resource);
+        positions[id] = { x: xOffset, y: yOffset };
+
+        // Layout resources in a grid
+        resourcesInRow++;
+        xOffset += 220;
+        if (resourcesInRow >= 4) {
+          resourcesInRow = 0;
+          xOffset = 50;
+          yOffset += 140;
+        }
+      }
+
+      updateUI();
+      alert(`Imported ${resources.length} resources from Terraform file!`);
+    }
+
+    function zoomIn() {
+      zoom = Math.min(2, zoom + 0.1);
+      updateZoom();
+    }
+
+    function zoomOut() {
+      zoom = Math.max(0.5, zoom - 0.1);
+      updateZoom();
+    }
+
+    function updateZoom() {
+      document.getElementById('zoomLevel').textContent = Math.round(zoom * 100) + '%';
+      const canvas = document.getElementById('canvas');
+      canvas.style.backgroundSize = (20 * zoom) + 'px ' + (20 * zoom) + 'px';
+      renderCanvas();
+    }
+
+    // Start the app
+    init();
+  </script>
+</body>
+</html>

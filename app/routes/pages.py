@@ -28,7 +28,7 @@ def index():
 @bp.route('/editor.html')
 def editor():
     """
-    Render Terraform visual editor
+    Render Terraform visual editor (Free tier - AWS only)
     Requires authentication and active subscription (free or pro)
 
     Returns:
@@ -59,6 +59,45 @@ def editor():
         return redirect(url_for('pages.pricing'))
 
     return render_template('editor.html', user=user)
+
+
+@bp.route('/editor/pro')
+def pro_editor():
+    """
+    Render Pro Terraform visual editor (Multi-cloud: AWS, GCP, Azure)
+    Requires authentication and Pro subscription
+
+    Returns:
+        Rendered HTML Pro editor page or redirect
+    """
+    from flask import redirect, url_for, flash
+    from flask_jwt_extended import verify_jwt_in_request
+
+    # Check if JWT token exists and is valid
+    try:
+        verify_jwt_in_request()
+        user_id = get_jwt_identity()
+    except Exception:
+        # No valid token found - redirect to login
+        flash('Please log in to access the Pro editor', 'error')
+        return redirect(url_for('pages.login_page'))
+
+    # Get user from database
+    user = User.query.get(user_id)
+    if not user:
+        flash('Please log in to access the Pro editor', 'error')
+        return redirect(url_for('pages.login_page'))
+
+    # Check if user has Pro subscription
+    if user.subscription_tier != 'pro':
+        flash('Pro subscription required to access multi-cloud editor', 'warning')
+        return redirect(url_for('pages.pricing'))
+
+    if user.subscription_status not in ['active', 'trialing']:
+        flash('Please activate your Pro subscription', 'warning')
+        return redirect(url_for('pages.pricing'))
+
+    return render_template('editor_pro.html', user=user)
 
 
 @bp.route('/pricing')

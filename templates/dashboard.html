@@ -267,13 +267,24 @@
     <div class="cards-grid">
       <div class="card">
         <h2>🎨 Terraform Editor</h2>
-        <p>Design and visualize your infrastructure with our drag-and-drop editor</p>
+        <p>Design and visualize your AWS infrastructure with our drag-and-drop editor</p>
         {% if user.subscription_status in ['active', 'trialing'] %}
-        <a href="/editor" class="btn-primary">Open Editor</a>
+        <a href="/editor" class="btn-primary">Open Editor (AWS)</a>
         {% else %}
         <a href="/pricing" class="btn-primary">Subscribe to Access</a>
         {% endif %}
       </div>
+
+      {% if user.subscription_tier == 'pro' and user.subscription_status in ['active', 'trialing'] %}
+      <div class="card" style="border: 2px solid #667eea;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h2>🌐 Pro Multi-Cloud Editor</h2>
+          <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;">PRO</span>
+        </div>
+        <p>Design infrastructure across AWS, Google Cloud, and Azure with advanced multi-cloud support</p>
+        <a href="/editor/pro" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">Open Pro Editor</a>
+      </div>
+      {% endif %}
 
       <div class="card">
         <h2>📊 My Projects</h2>
