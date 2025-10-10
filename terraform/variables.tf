@@ -100,7 +100,6 @@ variable "enable_monitoring" {
 variable "domain_name" {
   description = "Domain name for the application"
   type        = string
-  default     = "tfvisualizer.net"
 }
 
 variable "alert_email" {
