@@ -85,6 +85,8 @@ resource "kubernetes_secret" "app_config" {
     STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
     STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
+    STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
+    STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
     S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
     AWS_ACCESS_KEY_ID      = var.spaces_access_key
     AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
