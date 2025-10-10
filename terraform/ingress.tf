@@ -48,6 +48,7 @@ resource "kubernetes_ingress_v1" "app" {
   ]
 }
 
+/*
 # Ingress for www subdomain redirect
 resource "kubernetes_ingress_v1" "www_redirect" {
   metadata {
@@ -85,3 +86,4 @@ resource "kubernetes_ingress_v1" "www_redirect" {
     helm_release.nginx_ingress
   ]
 }
+*/
