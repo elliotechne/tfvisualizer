@@ -158,34 +158,53 @@
       </ul>
     </div>
 
-    <a href="/editor/pro" class="btn-primary" id="editorBtn">Open Pro Editor</a>
+    <button class="btn-primary" id="editorBtn" style="display: none;">Open Pro Editor</button>
+    <a href="/login?redirect=/editor/pro" class="btn-primary" id="loginBtn">Login to Access Pro Editor</a>
 
-    <p class="redirect-message">
+    <p class="redirect-message" id="redirectMessage" style="display: none;">
       Redirecting to Pro Editor in <span id="countdown">5</span> seconds...
     </p>
   </div>
 
   <script>
-    // Countdown and auto-redirect
-    let countdown = 5;
-    const countdownEl = document.getElementById('countdown');
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token');
+    const editorBtn = document.getElementById('editorBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const redirectMessage = document.getElementById('redirectMessage');
 
-    const timer = setInterval(() => {
-      countdown--;
-      countdownEl.textContent = countdown;
+    if (token) {
+      // User is logged in - show editor button and auto-redirect
+      editorBtn.style.display = 'inline-block';
+      loginBtn.style.display = 'none';
+      redirectMessage.style.display = 'block';
 
-      if (countdown <= 0) {
+      // Countdown and auto-redirect
+      let countdown = 5;
+      const countdownEl = document.getElementById('countdown');
+
+      const timer = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = countdown;
+
+        if (countdown <= 0) {
+          clearInterval(timer);
+          window.location.href = '/editor/pro';
+        }
+      }, 1000);
+
+      // Manual redirect when button is clicked
+      editorBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         clearInterval(timer);
         window.location.href = '/editor/pro';
-      }
-    }, 1000);
-
-    // Manual redirect when button is clicked
-    document.getElementById('editorBtn').addEventListener('click', (e) => {
-      e.preventDefault();
-      clearInterval(timer);
-      window.location.href = '/editor/pro';
-    });
+      });
+    } else {
+      // User is not logged in - show login button
+      editorBtn.style.display = 'none';
+      loginBtn.style.display = 'inline-block';
+      redirectMessage.style.display = 'none';
+    }
   </script>
 </body>
 </html>

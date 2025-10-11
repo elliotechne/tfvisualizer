@@ -195,9 +195,13 @@
           formSuccess.textContent = 'Login successful! Redirecting...';
           formSuccess.style.display = 'block';
 
+          // Check for redirect parameter in URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectTo = urlParams.get('redirect') || '/dashboard';
+
           // Redirect after 1 second
           setTimeout(() => {
-            window.location.href = '/dashboard';
+            window.location.href = redirectTo;
           }, 1000);
         } else {
           formError.textContent = data.error || 'Invalid email or password';
