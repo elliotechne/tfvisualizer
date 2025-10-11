@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Projects - TFVisualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Navigation */
+    nav {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: #4a5568;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #667eea;
+    }
+
+    .btn-logout {
+      padding: 10px 20px;
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: #c53030;
+      transform: translateY(-2px);
+    }
+
+    /* Main Content */
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    .page-header {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-header h1 {
+      font-size: 32px;
+      color: #1a202c;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: #5a67d8;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background: #718096;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #4a5568;
+    }
+
+    .btn-danger {
+      padding: 8px 16px;
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn-danger:hover {
+      background: #c53030;
+    }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .project-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+
+    .project-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .project-card h3 {
+      font-size: 20px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .project-card p {
+      color: #718096;
+      margin-bottom: 16px;
+      min-height: 40px;
+    }
+
+    .project-meta {
+      font-size: 12px;
+      color: #a0aec0;
+      margin-bottom: 16px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .empty-state {
+      background: white;
+      border-radius: 12px;
+      padding: 64px 32px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .empty-state h2 {
+      font-size: 24px;
+      color: #1a202c;
+      margin-bottom: 16px;
+    }
+
+    .empty-state p {
+      color: #718096;
+      margin-bottom: 24px;
+      font-size: 18px;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 {
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #1a202c;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .alert-error {
+      background: #fed7d7;
+      color: #742a2a;
+      border: 1px solid #fc8181;
+    }
+
+    .alert-success {
+      background: #c6f6d5;
+      color: #22543d;
+      border: 1px solid #9ae6b4;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 32px;
+      color: white;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#667eea"/>
+          <path d="M16 8L22 12V20L16 24L10 20V12L16 8Z" stroke="white" stroke-width="2" fill="none"/>
+        </svg>
+        TFVisualizer
+      </a>
+      <div class="nav-links">
+        <a href="/editor">Editor</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/projects">Projects</a>
+        <button onclick="logout()" class="btn-logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div id="alertContainer"></div>
+
+    <div class="page-header">
+      <h1>My Projects</h1>
+      <button class="btn-primary" onclick="openCreateModal()">+ New Project</button>
+    </div>
+
+    <div id="loadingState" class="loading">Loading projects...</div>
+    <div id="projectsContainer" style="display: none;"></div>
+  </div>
+
+  <!-- Create/Edit Project Modal -->
+  <div id="projectModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle">Create New Project</h2>
+      <form id="projectForm">
+        <div class="form-group">
+          <label for="projectName">Project Name</label>
+          <input type="text" id="projectName" name="name" required placeholder="My Infrastructure">
+        </div>
+        <div class="form-group">
+          <label for="projectDescription">Description</label>
+          <textarea id="projectDescription" name="description" placeholder="Optional description of your project"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let projects = [];
+    let editingProjectId = null;
+
+    function logout() {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login';
+    }
+
+    async function loadProjects() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/projects', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          projects = data.projects || [];
+          renderProjects();
+        } else if (response.status === 401) {
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          showAlert(errorData.error || 'Failed to load projects', 'error');
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        showAlert('Error loading projects', 'error');
+      } finally {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('projectsContainer').style.display = 'block';
+      }
+    }
+
+    function renderProjects() {
+      const container = document.getElementById('projectsContainer');
+
+      if (projects.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h2>No Projects Yet</h2>
+            <p>Create your first project to get started with TFVisualizer</p>
+            <button class="btn-primary" onclick="openCreateModal()">+ Create First Project</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="projects-grid">
+          ${projects.map(project => `
+            <div class="project-card">
+              <h3>${escapeHtml(project.name)}</h3>
+              <p>${escapeHtml(project.description || 'No description')}</p>
+              <div class="project-meta">
+                Created: ${new Date(project.created_at).toLocaleDateString()}
+              </div>
+              <div class="project-actions">
+                <button class="btn-primary" onclick="openEditor('${project.id}')">Open</button>
+                <button class="btn-danger" onclick="deleteProject('${project.id}', '${escapeHtml(project.name)}')">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openCreateModal() {
+      editingProjectId = null;
+      document.getElementById('modalTitle').textContent = 'Create New Project';
+      document.getElementById('projectForm').reset();
+      document.getElementById('projectModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('projectModal').classList.remove('active');
+      document.getElementById('projectForm').reset();
+      editingProjectId = null;
+    }
+
+    async function createProject(formData) {
+      const token = localStorage.getItem('access_token');
+
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          showAlert('Project created successfully!', 'success');
+          closeModal();
+          loadProjects();
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          showAlert(errorData.error || errorData.message || 'Failed to create project', 'error');
+        }
+      } catch (error) {
+        console.error('Error creating project:', error);
+        showAlert('Error creating project', 'error');
+      }
+    }
+
+    async function deleteProject(projectId, projectName) {
+      if (!confirm(`Are you sure you want to delete "${projectName}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      const token = localStorage.getItem('access_token');
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          showAlert('Project deleted successfully', 'success');
+          loadProjects();
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          showAlert(errorData.error || 'Failed to delete project', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        showAlert('Error deleting project', 'error');
+      }
+    }
+
+    function openEditor(projectId) {
+      // TODO: Pass project ID to editor
+      window.location.href = '/editor/pro';
+    }
+
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+      container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Form submission
+    document.getElementById('projectForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        name: document.getElementById('projectName').value,
+        description: document.getElementById('projectDescription').value
+      };
+
+      await createProject(formData);
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('projectModal').addEventListener('click', (e) => {
+      if (e.target.id === 'projectModal') {
+        closeModal();
+      }
+    });
+
+    // Load projects on page load
+    window.addEventListener('DOMContentLoaded', loadProjects);
+  </script>
+</body>
+</html>
