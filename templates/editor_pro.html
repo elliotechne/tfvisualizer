@@ -731,8 +731,8 @@
       aws_elasticache_cluster: 12.40,
 
       // GCP
-      google_compute_instance: { e2_micro: 7.11, e2_small: 14.23, e2_medium: 28.46, n1_standard_1: 24.27, n1_standard_2: 48.54, n2_standard_2: 57.83 },
-      google_sql_database_instance: { db_f1_micro: 8.85, db_g1_small: 28.08, db_n1_standard_1: 85.41 },
+      google_compute_instance: { e2_micro: 6.11, e2_small: 12.23, e2_medium: 24.46, n1_standard_1: 24.27, n1_standard_2: 48.54, n1_standard_4: 97.09 },
+      google_sql_database_instance: { db_f1_micro: 7.67, db_g1_small: 25.00, db_n1_standard_1: 51.76, db_n1_standard_2: 103.52 },
       google_storage_bucket: 0.020,
       google_compute_disk: 0.04,
       google_compute_network: 0,
@@ -745,10 +745,10 @@
       google_redis_instance: 11.50,
 
       // Azure
-      azurerm_virtual_machine: { Standard_B1s: 8.47, Standard_B2s: 33.58, Standard_D2s_v3: 70.08, Standard_D4s_v3: 140.16 },
-      azurerm_mssql_database: { Basic: 4.99, S0: 15, S1: 30, P1: 465 },
+      azurerm_virtual_machine: { Standard_B1s: 7.59, Standard_B2s: 30.37, Standard_B2ms: 60.74, Standard_D2s_v3: 70.08, Standard_D4s_v3: 140.16 },
+      azurerm_mssql_database: { Basic: 4.90, S0: 15, S1: 30, S2: 60 },
       azurerm_storage_account: 0.023,
-      azurerm_managed_disk: 0.08,
+      azurerm_managed_disk: 0.05,
       azurerm_virtual_network: 0,
       azurerm_subnet: 0,
       azurerm_network_security_group: 0,
@@ -1175,13 +1175,32 @@
     }
 
     function calculateCost(resource) {
+      // AWS pricing
       if (resource.type === 'aws_instance' && resource.instanceType) {
         return pricing.aws_instance[resource.instanceType] || 8.47;
       } else if (resource.type === 'aws_rds_instance' && resource.instanceType) {
         return pricing.aws_rds_instance[resource.instanceType] || 14.02;
       } else if (resource.type === 'aws_ebs_volume' && resource.volumeSize) {
         return pricing.aws_ebs_volume * resource.volumeSize;
-      } else if (typeof pricing[resource.type] === 'number') {
+      }
+      // GCP pricing
+      else if (resource.type === 'google_compute_instance' && resource.instanceType) {
+        return pricing.google_compute_instance[resource.instanceType] || 24.46;
+      } else if (resource.type === 'google_sql_database_instance' && resource.instanceType) {
+        return pricing.google_sql_database_instance[resource.instanceType] || 25.00;
+      } else if (resource.type === 'google_compute_disk' && resource.volumeSize) {
+        return pricing.google_compute_disk * resource.volumeSize;
+      }
+      // Azure pricing
+      else if (resource.type === 'azurerm_virtual_machine' && resource.instanceType) {
+        return pricing.azurerm_virtual_machine[resource.instanceType] || 30.37;
+      } else if (resource.type === 'azurerm_mssql_database' && resource.instanceType) {
+        return pricing.azurerm_mssql_database[resource.instanceType] || 15.00;
+      } else if (resource.type === 'azurerm_managed_disk' && resource.volumeSize) {
+        return pricing.azurerm_managed_disk * resource.volumeSize;
+      }
+      // Default pricing for other resources
+      else if (typeof pricing[resource.type] === 'number') {
         return pricing[resource.type];
       }
       return 0;
@@ -1660,6 +1679,73 @@
               <div class="form-hint">Cost: ${(resource.volumeSize * 0.10).toFixed(2)}/mo</div>
             </div>
           `;
+        } else if (resource.type === 'google_compute_instance') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Machine Type</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="e2_micro" ${resource.instanceType === 'e2_micro' ? 'selected' : ''}>e2-micro - $6.11/mo</option>
+                <option value="e2_small" ${resource.instanceType === 'e2_small' ? 'selected' : ''}>e2-small - $12.23/mo</option>
+                <option value="e2_medium" ${resource.instanceType === 'e2_medium' ? 'selected' : ''}>e2-medium - $24.46/mo</option>
+                <option value="n1_standard_1" ${resource.instanceType === 'n1_standard_1' ? 'selected' : ''}>n1-standard-1 - $24.27/mo</option>
+                <option value="n1_standard_2" ${resource.instanceType === 'n1_standard_2' ? 'selected' : ''}>n1-standard-2 - $48.54/mo</option>
+                <option value="n1_standard_4" ${resource.instanceType === 'n1_standard_4' ? 'selected' : ''}>n1-standard-4 - $97.09/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'google_sql_database_instance') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Instance Type</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="db_f1_micro" ${resource.instanceType === 'db_f1_micro' ? 'selected' : ''}>db-f1-micro - $7.67/mo</option>
+                <option value="db_g1_small" ${resource.instanceType === 'db_g1_small' ? 'selected' : ''}>db-g1-small - $25.00/mo</option>
+                <option value="db_n1_standard_1" ${resource.instanceType === 'db_n1_standard_1' ? 'selected' : ''}>db-n1-standard-1 - $51.76/mo</option>
+                <option value="db_n1_standard_2" ${resource.instanceType === 'db_n1_standard_2' ? 'selected' : ''}>db-n1-standard-2 - $103.52/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'google_compute_disk') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Disk Size (GB)</label>
+              <input type="number" class="form-input" id="editVolumeSize" value="${resource.volumeSize}" min="1" placeholder="100">
+              <div class="form-hint">Cost: ${(resource.volumeSize * 0.04).toFixed(2)}/mo</div>
+            </div>
+          `;
+        } else if (resource.type === 'azurerm_virtual_machine') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">VM Size</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="Standard_B1s" ${resource.instanceType === 'Standard_B1s' ? 'selected' : ''}>Standard_B1s - $7.59/mo</option>
+                <option value="Standard_B2s" ${resource.instanceType === 'Standard_B2s' ? 'selected' : ''}>Standard_B2s - $30.37/mo</option>
+                <option value="Standard_B2ms" ${resource.instanceType === 'Standard_B2ms' ? 'selected' : ''}>Standard_B2ms - $60.74/mo</option>
+                <option value="Standard_D2s_v3" ${resource.instanceType === 'Standard_D2s_v3' ? 'selected' : ''}>Standard_D2s_v3 - $70.08/mo</option>
+                <option value="Standard_D4s_v3" ${resource.instanceType === 'Standard_D4s_v3' ? 'selected' : ''}>Standard_D4s_v3 - $140.16/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'azurerm_mssql_database') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">SKU Name</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="Basic" ${resource.instanceType === 'Basic' ? 'selected' : ''}>Basic - $4.90/mo</option>
+                <option value="S0" ${resource.instanceType === 'S0' ? 'selected' : ''}>S0 - $15/mo</option>
+                <option value="S1" ${resource.instanceType === 'S1' ? 'selected' : ''}>S1 - $30/mo</option>
+                <option value="S2" ${resource.instanceType === 'S2' ? 'selected' : ''}>S2 - $60/mo</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'azurerm_managed_disk') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Disk Size (GB)</label>
+              <input type="number" class="form-input" id="editVolumeSize" value="${resource.volumeSize}" min="1" placeholder="100">
+              <div class="form-hint">Cost: ${(resource.volumeSize * 0.05).toFixed(2)}/mo</div>
+            </div>
+          `;
         }
       }
 
@@ -1703,6 +1789,14 @@
         } else if (resource.type === 'aws_rds_instance') {
           resource.instanceType = document.getElementById('editInstanceType').value;
         } else if (resource.type === 'aws_ebs_volume') {
+          resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
+        } else if (resource.type === 'google_compute_instance' || resource.type === 'google_sql_database_instance') {
+          resource.instanceType = document.getElementById('editInstanceType').value;
+        } else if (resource.type === 'google_compute_disk') {
+          resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
+        } else if (resource.type === 'azurerm_virtual_machine' || resource.type === 'azurerm_mssql_database') {
+          resource.instanceType = document.getElementById('editInstanceType').value;
+        } else if (resource.type === 'azurerm_managed_disk') {
           resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
         }
       }
