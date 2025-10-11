@@ -600,6 +600,12 @@
           <div class="canvas-header">
             <h2>🎨 Infrastructure Canvas <span id="resourceCount" style="font-size: 14px; font-weight: normal; color: #6b7280;">(0 resources)</span></h2>
             <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary" id="saveBtn" onclick="saveProjectState()" style="display: none;">
+                💾 Save
+              </button>
+              <button class="btn btn-secondary" id="loadBtn" onclick="loadProjectState()" style="display: none;">
+                📂 Load
+              </button>
               <button class="btn btn-secondary" id="connectBtn" onclick="toggleConnectionMode()">
                 🔗 Connect
               </button>
@@ -1935,8 +1941,116 @@
       renderCanvas();
     }
 
+    // Project State Management
+    let currentProjectId = null;
+
+    async function saveProjectState() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to save projects');
+        return;
+      }
+
+      if (!currentProjectId) {
+        alert('Please open a project first to save state');
+        return;
+      }
+
+      try {
+        const terraformCode = document.getElementById('codeOutput').textContent;
+
+        const response = await fetch(`/api/projects/${currentProjectId}/save`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            resources: resources,
+            connections: connections,
+            positions: positions,
+            terraform_code: terraformCode
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          alert(`Project saved successfully! Version: ${data.version.version_number}`);
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to save project');
+        }
+      } catch (error) {
+        console.error('Save error:', error);
+        alert('Error saving project');
+      }
+    }
+
+    async function loadProjectState() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to load projects');
+        return;
+      }
+
+      if (!currentProjectId) {
+        alert('Please open a project first to load state');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${currentProjectId}/load`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.state.resources.length === 0) {
+            alert('No saved state found for this project');
+            return;
+          }
+
+          // Load the state
+          resources = data.state.resources || [];
+          connections = data.state.connections || [];
+          positions = data.state.positions || {};
+
+          // Update UI
+          updateUI();
+          renderCanvas();
+
+          alert(`Project loaded successfully! Version: ${data.version || 1}`);
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to load project');
+        }
+      } catch (error) {
+        console.error('Load error:', error);
+        alert('Error loading project');
+      }
+    }
+
+    // Check URL for project ID and show save/load buttons
+    function initProjectFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectId = urlParams.get('project');
+
+      if (projectId) {
+        currentProjectId = projectId;
+        document.getElementById('saveBtn').style.display = 'inline-block';
+        document.getElementById('loadBtn').style.display = 'inline-block';
+
+        // Auto-load project state
+        loadProjectState();
+      }
+    }
+
     // Start the app
     init();
+    initProjectFromURL();
   </script>
 </body>
 </html>

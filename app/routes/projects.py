@@ -163,3 +163,122 @@ def delete_project(project_id):
         logger.error(f"Delete project error: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Failed to delete project'}), 500
+
+
+@bp.route('/<project_id>/save', methods=['POST'])
+@jwt_required()
+def save_project_state(project_id):
+    """
+    Save project state (resources, connections, positions)
+
+    Request Body:
+        {
+            "resources": [...],
+            "connections": [...],
+            "positions": {...},
+            "terraform_code": "..."
+        }
+
+    Returns:
+        JSON with version information
+    """
+    try:
+        user_id = get_jwt_identity()
+        project = Project.query.get(project_id)
+
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Check ownership
+        if project.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        # Get the latest version number
+        latest_version = ProjectVersion.query.filter_by(
+            project_id=project_id
+        ).order_by(ProjectVersion.version_number.desc()).first()
+
+        next_version = (latest_version.version_number + 1) if latest_version else 1
+
+        # Create new version
+        version = ProjectVersion(
+            project_id=project_id,
+            version_number=next_version,
+            resources=data.get('resources', []),
+            connections=data.get('connections', []),
+            positions=data.get('positions', {}),
+            terraform_code=data.get('terraform_code', ''),
+            created_by=user_id
+        )
+
+        db.session.add(version)
+        db.session.commit()
+
+        logger.info(f"Project state saved: {project_id} v{next_version}")
+
+        return jsonify({
+            'success': True,
+            'version': version.to_dict()
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Save project state error: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to save project state'}), 500
+
+
+@bp.route('/<project_id>/load', methods=['GET'])
+@jwt_required()
+def load_project_state(project_id):
+    """
+    Load latest project state
+
+    Returns:
+        JSON with project state (resources, connections, positions)
+    """
+    try:
+        user_id = get_jwt_identity()
+        project = Project.query.get(project_id)
+
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Check ownership
+        if project.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get latest version
+        latest_version = ProjectVersion.query.filter_by(
+            project_id=project_id
+        ).order_by(ProjectVersion.version_number.desc()).first()
+
+        if not latest_version:
+            return jsonify({
+                'success': True,
+                'state': {
+                    'resources': [],
+                    'connections': [],
+                    'positions': {},
+                    'terraform_code': ''
+                }
+            }), 200
+
+        return jsonify({
+            'success': True,
+            'state': {
+                'resources': latest_version.resources,
+                'connections': latest_version.connections,
+                'positions': latest_version.positions,
+                'terraform_code': latest_version.terraform_code
+            },
+            'version': latest_version.version_number
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Load project state error: {str(e)}")
+        return jsonify({'error': 'Failed to load project state'}), 500
