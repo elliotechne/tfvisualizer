@@ -422,6 +422,7 @@
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Projects response:', data);
           projects = data.projects || [];
           renderProjects();
         } else if (response.status === 401) {
@@ -429,7 +430,8 @@
           window.location.href = '/login';
         } else {
           const errorData = await response.json().catch(() => ({}));
-          showAlert(errorData.error || 'Failed to load projects', 'error');
+          console.error('Failed to load projects:', response.status, errorData);
+          showAlert(errorData.error || `Failed to load projects (${response.status})`, 'error');
         }
       } catch (error) {
         console.error('Error loading projects:', error);
@@ -506,7 +508,8 @@
           loadProjects();
         } else {
           const errorData = await response.json().catch(() => ({}));
-          showAlert(errorData.error || errorData.message || 'Failed to create project', 'error');
+          console.error('Failed to create project:', response.status, errorData);
+          showAlert(errorData.error || errorData.message || `Failed to create project (${response.status})`, 'error');
         }
       } catch (error) {
         console.error('Error creating project:', error);
