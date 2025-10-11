@@ -432,6 +432,14 @@
         return;
       }
 
+      // Check if user already has Pro subscription
+      const userHasPro = await checkUserSubscription(token);
+      if (userHasPro) {
+        // User already has Pro - redirect to Pro editor
+        window.location.href = '/editor/pro';
+        return;
+      }
+
       if (!stripeAvailable) {
         showAlert('Payment processing is not configured. Please contact the administrator to set up Stripe.', 'error');
         return;
@@ -482,6 +490,25 @@
       }
     }
 
+    async function checkUserSubscription(token) {
+      try {
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data.tier === 'pro' && (data.status === 'active' || data.status === 'trialing');
+        }
+        return false;
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        return false;
+      }
+    }
+
     function showAlert(message, type) {
       const container = document.getElementById('alertContainer');
       const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
@@ -499,8 +526,18 @@
       await checkStripeAvailability();
 
       const token = localStorage.getItem('access_token');
-      if (!token && stripeAvailable) {
-        document.getElementById('proBtn').textContent = 'Sign Up for Pro';
+      const proBtn = document.getElementById('proBtn');
+
+      if (token) {
+        // Check if user has Pro subscription
+        const userHasPro = await checkUserSubscription(token);
+        if (userHasPro) {
+          proBtn.textContent = 'Open Pro Editor';
+        } else {
+          proBtn.textContent = 'Upgrade to Pro';
+        }
+      } else if (stripeAvailable) {
+        proBtn.textContent = 'Sign Up for Pro';
       }
     });
   </script>
