@@ -414,7 +414,7 @@
       }
 
       try {
-        const response = await fetch('/api/projects', {
+        const response = await fetch('/api/projects/', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -492,7 +492,7 @@
       const token = localStorage.getItem('access_token');
 
       try {
-        const response = await fetch('/api/projects', {
+        const response = await fetch('/api/projects/', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
