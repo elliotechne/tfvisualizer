@@ -281,3 +281,40 @@ def debug_tables():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+
+@bp.route('/api/debug/init-db', methods=['POST'])
+def init_database():
+    """
+    Initialize database tables
+    WARNING: Only use in development/testing
+
+    Returns:
+        JSON with initialization status
+    """
+    from app.main import db
+    from sqlalchemy import inspect
+    import traceback
+
+    try:
+        # Create all tables
+        db.create_all()
+
+        # Get list of tables
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+
+        logger.info(f"Database tables created: {tables}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Database tables created successfully',
+            'tables': tables
+        }), 200
+    except Exception as e:
+        logger.error(f"Database init error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
