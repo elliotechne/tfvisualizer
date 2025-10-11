@@ -249,10 +249,8 @@
 
       <div class="user-info">
         <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Subscription Status:</strong> {{ user.subscription_status or 'None' }}</p>
-        {% if user.subscription_tier %}
-        <p><strong>Subscription Tier:</strong> {{ user.subscription_tier }}</p>
-        {% endif %}
+        <p><strong>Subscription Status:</strong> <span id="subscriptionStatus">{{ user.subscription_status or 'None' }}</span></p>
+        <p><strong>Subscription Tier:</strong> <span id="subscriptionTier">{{ user.subscription_tier or 'free' }}</span></p>
         <p><strong>Member Since:</strong> {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
       </div>
     </div>
@@ -396,6 +394,49 @@
       }
     }
 
+    // Check and update subscription status
+    async function checkSubscriptionStatus() {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Update displayed tier and status
+          const tierEl = document.getElementById('subscriptionTier');
+          const statusEl = document.getElementById('subscriptionStatus');
+
+          if (tierEl && data.tier) {
+            const currentTier = tierEl.textContent;
+            const newTier = data.tier;
+
+            // If tier changed from free to pro, reload the page to show Pro editor card
+            if (currentTier === 'free' && newTier === 'pro') {
+              console.log('Subscription upgraded to Pro! Reloading page...');
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              tierEl.textContent = newTier;
+            }
+          }
+
+          if (statusEl && data.status) {
+            statusEl.textContent = data.status;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking subscription status:', error);
+      }
+    }
+
     // Check if user is authenticated
     window.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('access_token');
@@ -406,6 +447,12 @@
 
       // Check Stripe availability
       checkStripeAvailability();
+
+      // Check subscription status on page load
+      checkSubscriptionStatus();
+
+      // Poll subscription status every 5 seconds (useful after returning from checkout)
+      setInterval(checkSubscriptionStatus, 5000);
     });
   </script>
 </body>
