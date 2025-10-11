@@ -48,8 +48,7 @@ resource "kubernetes_ingress_v1" "app" {
   ]
 }
 
-/*
-# Ingress for www subdomain redirect
+# Ingress for www subdomain redirect to root domain
 resource "kubernetes_ingress_v1" "www_redirect" {
   metadata {
     name      = "tfvisualizer-www-redirect"
@@ -86,4 +85,3 @@ resource "kubernetes_ingress_v1" "www_redirect" {
     helm_release.nginx_ingress
   ]
 }
-*/
