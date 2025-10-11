@@ -329,15 +329,19 @@
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Subscription data:', data); // Debug log
 
           // If user has Pro tier, open Pro editor (multi-cloud)
           if (data.tier === 'pro' && (data.status === 'active' || data.status === 'trialing')) {
+            console.log('Redirecting to Pro editor');
             window.location.href = '/editor/pro';
           } else {
             // Otherwise open basic editor (AWS only)
+            console.log('Redirecting to basic editor. Tier:', data.tier, 'Status:', data.status);
             window.location.href = '/editor';
           }
         } else {
+          console.error('API call failed with status:', response.status);
           // Fallback to basic editor if API call fails
           window.location.href = '/editor';
         }
