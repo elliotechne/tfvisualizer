@@ -260,10 +260,12 @@ def debug_tables():
         JSON with table information
     """
     from app.main import db
+    from sqlalchemy import inspect
+    import traceback
 
     try:
         # Check if tables exist
-        inspector = db.inspect(db.engine)
+        inspector = inspect(db.engine)
         tables = inspector.get_table_names()
 
         return jsonify({
@@ -273,6 +275,9 @@ def debug_tables():
             'users_exists': 'users' in tables
         }), 200
     except Exception as e:
+        logger.error(f"Debug tables error: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
-            'error': str(e)
+            'error': str(e),
+            'traceback': traceback.format_exc()
         }), 500
