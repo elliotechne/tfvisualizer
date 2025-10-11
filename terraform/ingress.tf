@@ -56,6 +56,7 @@ resource "kubernetes_ingress_v1" "www_redirect" {
     annotations = {
       "nginx.ingress.kubernetes.io/permanent-redirect" = "https://${var.domain_name}$request_uri"
       "nginx.ingress.kubernetes.io/ssl-redirect"       = "false"
+      "external-dns.alpha.kubernetes.io/hostname"      = "www.${var.domain_name}"
     }
   }
 
