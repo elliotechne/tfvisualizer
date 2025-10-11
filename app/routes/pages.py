@@ -127,6 +127,15 @@ def dashboard():
     if user_id:
         user = User.query.get(user_id)
 
+        # Sync subscription status with Stripe if user has a Stripe customer ID
+        if user and user.stripe_customer_id:
+            try:
+                from app.services.stripe_service import StripeService
+                stripe_service = StripeService()
+                stripe_service.sync_user_subscription(user)
+            except Exception as e:
+                logger.error(f"Error syncing subscription for user {user_id}: {str(e)}")
+
     return render_template('dashboard.html', user=user)
 
 

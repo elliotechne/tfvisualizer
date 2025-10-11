@@ -405,3 +405,57 @@ class StripeService:
         except Exception as e:
             logger.error(f"Error handling checkout.session.completed: {str(e)}")
             db.session.rollback()
+
+    def sync_user_subscription(self, user: User) -> None:
+        """
+        Sync user's subscription tier with Stripe
+        Checks if user has an active Pro subscription and updates local database
+
+        Args:
+            user: User model instance
+        """
+        try:
+            if not user.stripe_customer_id:
+                logger.info(f"User {user.id} has no Stripe customer ID, skipping sync")
+                return
+
+            # Retrieve all subscriptions for this customer
+            subscriptions = stripe.Subscription.list(
+                customer=user.stripe_customer_id,
+                limit=10
+            )
+
+            # Check if user has an active Pro subscription
+            has_active_pro = False
+            current_status = 'inactive'
+
+            for subscription in subscriptions.data:
+                # Check if subscription is active or trialing
+                if subscription.status in ['active', 'trialing']:
+                    has_active_pro = True
+                    current_status = subscription.status
+                    logger.info(f"User {user.id} has active Stripe subscription: {subscription.id} with status {subscription.status}")
+                    break
+
+            # Update user's subscription tier based on Stripe data
+            if has_active_pro:
+                if user.subscription_tier != 'pro':
+                    logger.info(f"Updating user {user.id} from {user.subscription_tier} to pro")
+                    user.subscription_tier = 'pro'
+
+                if user.subscription_status != current_status:
+                    logger.info(f"Updating user {user.id} status from {user.subscription_status} to {current_status}")
+                    user.subscription_status = current_status
+
+                db.session.commit()
+            else:
+                # No active subscription found, ensure user is on free tier
+                if user.subscription_tier == 'pro':
+                    logger.info(f"No active subscription found for user {user.id}, downgrading to free")
+                    user.subscription_tier = 'free'
+                    user.subscription_status = 'inactive'
+                    db.session.commit()
+
+        except Exception as e:
+            logger.error(f"Error syncing subscription for user {user.id}: {str(e)}")
+            db.session.rollback()
