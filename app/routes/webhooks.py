@@ -80,7 +80,7 @@ def stripe_webhook():
 
         # Checkout events
         elif event_type == 'checkout.session.completed':
-            logger.info(f"Checkout session completed: {event_data['id']}")
+            stripe_service.handle_checkout_completed(event_data)
 
         else:
             logger.info(f"Unhandled webhook event type: {event_type}")

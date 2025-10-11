@@ -363,3 +363,45 @@ class StripeService:
         except Exception as e:
             logger.error(f"Error handling payment_intent.payment_failed: {str(e)}")
             db.session.rollback()
+
+    def handle_checkout_completed(self, session_obj: dict) -> None:
+        """
+        Handle checkout.session.completed webhook event
+
+        Args:
+            session_obj: Stripe checkout session object
+        """
+        try:
+            user_id = session_obj.get('metadata', {}).get('user_id')
+            if not user_id:
+                logger.error("No user_id in checkout session metadata")
+                return
+
+            user = User.query.get(user_id)
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return
+
+            # If subscription was created, update user immediately
+            if session_obj.get('mode') == 'subscription' and session_obj.get('subscription'):
+                # Retrieve the subscription to get its status
+                subscription_id = session_obj['subscription']
+                subscription = stripe.Subscription.retrieve(subscription_id)
+
+                # Update user to Pro tier immediately
+                user.subscription_tier = 'pro'
+
+                # Set status based on subscription status
+                if subscription.status == 'trialing':
+                    user.subscription_status = 'trialing'
+                elif subscription.status == 'active':
+                    user.subscription_status = 'active'
+                else:
+                    user.subscription_status = subscription.status
+
+                db.session.commit()
+                logger.info(f"User {user_id} upgraded to Pro via checkout session {session_obj['id']}")
+
+        except Exception as e:
+            logger.error(f"Error handling checkout.session.completed: {str(e)}")
+            db.session.rollback()
