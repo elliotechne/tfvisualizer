@@ -267,11 +267,7 @@
         <h2>🎨 Terraform Editor</h2>
         <p>Design and visualize your infrastructure with our editor</p>
         {% if user.subscription_status in ['active', 'trialing'] %}
-          {% if user.subscription_tier == 'pro' %}
-        <a href="/editor/pro" class="btn-primary">Open Pro Editor (AWS, GCP, Azure)</a>
-          {% else %}
-        <a href="/editor" class="btn-primary">Open Editor (AWS)</a>
-          {% endif %}
+        <button class="btn-primary" onclick="openEditor()" id="editorBtn">Open Editor</button>
         {% else %}
         <a href="/pricing" class="btn-primary">Subscribe to Access</a>
         {% endif %}
@@ -314,6 +310,42 @@
     function logout() {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
+    }
+
+    async function openEditor() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
+      try {
+        // Check current subscription tier
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // If user has Pro tier, open Pro editor (multi-cloud)
+          if (data.tier === 'pro' && (data.status === 'active' || data.status === 'trialing')) {
+            window.location.href = '/editor/pro';
+          } else {
+            // Otherwise open basic editor (AWS only)
+            window.location.href = '/editor';
+          }
+        } else {
+          // Fallback to basic editor if API call fails
+          window.location.href = '/editor';
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        // Fallback to basic editor
+        window.location.href = '/editor';
+      }
     }
 
     async function loadProjects() {
