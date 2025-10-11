@@ -249,3 +249,30 @@ def projects_page():
         Rendered HTML projects page
     """
     return render_template('projects.html')
+
+
+@bp.route('/api/debug/tables')
+def debug_tables():
+    """
+    Debug endpoint to check database tables
+
+    Returns:
+        JSON with table information
+    """
+    from app.main import db
+
+    try:
+        # Check if tables exist
+        inspector = db.inspect(db.engine)
+        tables = inspector.get_table_names()
+
+        return jsonify({
+            'success': True,
+            'tables': tables,
+            'projects_exists': 'projects' in tables,
+            'users_exists': 'users' in tables
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        }), 500
