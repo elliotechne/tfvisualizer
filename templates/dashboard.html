@@ -282,8 +282,11 @@
       <div class="card">
         <h2>💳 Subscription</h2>
         <p>Manage your subscription and billing information</p>
-        {% if user.subscription_tier == 'pro' and user.stripe_customer_id %}
-        <button class="btn-primary" onclick="manageSubscription()">Manage Subscription</button>
+        {% if user.subscription_tier == 'pro' and user.subscription_status in ['active', 'trialing'] %}
+        <button class="btn-primary" onclick="openProEditor()" style="margin-bottom: 8px;">Access Pro Editor</button>
+        {% if user.stripe_customer_id %}
+        <button class="btn-primary" onclick="manageSubscription()" style="background: #718096;">Manage Billing</button>
+        {% endif %}
         {% elif user.subscription_tier == 'free' %}
         <a href="/pricing" class="btn-primary" id="upgradeBtn">Upgrade to Pro</a>
         {% else %}
@@ -310,6 +313,10 @@
     function logout() {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
+    }
+
+    function openProEditor() {
+      window.location.href = '/editor/pro';
     }
 
     async function openEditor() {
