@@ -54,14 +54,20 @@ resource "kubernetes_ingress_v1" "www_redirect" {
     name      = "tfvisualizer-www-redirect"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     annotations = {
+      "cert-manager.io/cluster-issuer"                 = "letsencrypt-prod"
       "nginx.ingress.kubernetes.io/permanent-redirect" = "https://${var.domain_name}$request_uri"
-      "nginx.ingress.kubernetes.io/ssl-redirect"       = "false"
+      "nginx.ingress.kubernetes.io/ssl-redirect"       = "true"
       "external-dns.alpha.kubernetes.io/hostname"      = "www.${var.domain_name}"
     }
   }
 
   spec {
     ingress_class_name = "nginx"
+
+    tls {
+      hosts       = ["www.${var.domain_name}"]
+      secret_name = "tfvisualizer-www-tls"
+    }
 
     rule {
       host = "www.${var.domain_name}"
@@ -83,6 +89,7 @@ resource "kubernetes_ingress_v1" "www_redirect" {
   }
 
   depends_on = [
-    helm_release.nginx_ingress
+    helm_release.nginx_ingress,
+    kubectl_manifest.letsencrypt_cluster_issuer
   ]
 }
