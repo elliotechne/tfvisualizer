@@ -327,7 +327,7 @@
         TFVisualizer
       </a>
       <div class="nav-links">
-        <a href="/editor">Editor</a>
+        <a href="#" onclick="openEditorFromNav(); return false;" id="editorNavLink">Editor</a>
         <a href="/dashboard">Dashboard</a>
         <a href="/projects">Projects</a>
         <button onclick="logout()" class="btn-logout">Logout</button>
@@ -375,6 +375,35 @@
     function logout() {
       localStorage.removeItem('access_token');
       window.location.href = '/login';
+    }
+
+    async function openEditorFromNav() {
+      const token = localStorage.getItem('access_token');
+
+      try {
+        // Check subscription tier
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // If user has Pro tier, open Pro editor
+          if (data.tier === 'pro' && (data.status === 'active' || data.status === 'trialing')) {
+            window.location.href = '/editor/pro';
+          } else {
+            window.location.href = '/editor';
+          }
+        } else {
+          window.location.href = '/editor';
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        window.location.href = '/editor';
+      }
     }
 
     async function loadProjects() {
@@ -513,9 +542,36 @@
       }
     }
 
-    function openEditor(projectId) {
-      // TODO: Pass project ID to editor
-      window.location.href = '/editor/pro';
+    async function openEditor(projectId) {
+      const token = localStorage.getItem('access_token');
+
+      try {
+        // Check subscription tier to determine which editor to open
+        const response = await fetch('/api/subscription/status', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // If user has Pro tier, open Pro editor (multi-cloud)
+          if (data.tier === 'pro' && (data.status === 'active' || data.status === 'trialing')) {
+            window.location.href = `/editor/pro?project=${projectId}`;
+          } else {
+            // Otherwise open basic editor (AWS only)
+            window.location.href = `/editor?project=${projectId}`;
+          }
+        } else {
+          // Fallback to basic editor if API call fails
+          window.location.href = `/editor?project=${projectId}`;
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        // Fallback to basic editor
+        window.location.href = `/editor?project=${projectId}`;
+      }
     }
 
     function showAlert(message, type) {
