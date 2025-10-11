@@ -1344,13 +1344,13 @@
           code += `  name               = "${resource.name}"\n`;
           code += `  internal           = false\n`;
           code += `  load_balancer_type = "application"\n`;
-          
+
           const incomingConns = connections.filter(c => c.to === resource.id);
           const subnetConns = incomingConns.filter(conn => {
             const sourceResource = resources.find(r => r.id === conn.from);
             return sourceResource && sourceResource.type === 'aws_subnet';
           });
-          
+
           if (subnetConns.length > 0) {
             code += `  subnets            = [\n`;
             subnetConns.forEach((conn, idx) => {
@@ -1359,6 +1359,128 @@
             });
             code += `  ]\n`;
           }
+        }
+        // Google Cloud Platform Resources
+        else if (resource.type === 'google_compute_instance') {
+          code += `  name         = "${resource.name}"\n`;
+          code += `  machine_type = "${(resource.instanceType || 'e2_medium').replace('_', '-')}"\n`;
+          code += `  zone         = "us-central1-a"\n\n`;
+          code += `  boot_disk {\n`;
+          code += `    initialize_params {\n`;
+          code += `      image = "debian-cloud/debian-11"\n`;
+          code += `    }\n`;
+          code += `  }\n\n`;
+          code += `  network_interface {\n`;
+          code += `    network = "default"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'google_cloudfunctions_function') {
+          code += `  name        = "${resource.name}"\n`;
+          code += `  runtime     = "python39"\n`;
+          code += `  entry_point = "main"\n`;
+          code += `  region      = "us-central1"\n\n`;
+          code += `  source_archive_bucket = google_storage_bucket.function_bucket.name\n`;
+          code += `  source_archive_object = google_storage_bucket_object.function_zip.name\n`;
+        } else if (resource.type === 'google_cloud_run_service') {
+          code += `  name     = "${resource.name}"\n`;
+          code += `  location = "us-central1"\n\n`;
+          code += `  template {\n`;
+          code += `    spec {\n`;
+          code += `      containers {\n`;
+          code += `        image = "gcr.io/cloudrun/hello"\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'google_sql_database_instance') {
+          code += `  name             = "${resource.name}"\n`;
+          code += `  database_version = "POSTGRES_14"\n`;
+          code += `  region           = "us-central1"\n\n`;
+          code += `  settings {\n`;
+          code += `    tier = "${(resource.instanceType || 'db_g1_small').replace('_', '-')}"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'google_bigtable_instance') {
+          code += `  name         = "${resource.name}"\n`;
+          code += `  cluster {\n`;
+          code += `    cluster_id   = "${resource.name}-cluster"\n`;
+          code += `    num_nodes    = 3\n`;
+          code += `    storage_type = "SSD"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'google_redis_instance') {
+          code += `  name           = "${resource.name}"\n`;
+          code += `  tier           = "BASIC"\n`;
+          code += `  memory_size_gb = 1\n`;
+          code += `  region         = "us-central1"\n`;
+        } else if (resource.type === 'google_storage_bucket') {
+          code += `  name     = "${resource.name}"\n`;
+          code += `  location = "US"\n`;
+        } else if (resource.type === 'google_compute_disk') {
+          code += `  name = "${resource.name}"\n`;
+          code += `  type = "pd-standard"\n`;
+          code += `  zone = "us-central1-a"\n`;
+          code += `  size = ${resource.volumeSize || 100}\n`;
+        }
+        // Azure Resources
+        else if (resource.type === 'azurerm_virtual_machine') {
+          code += `  name                  = "${resource.name}"\n`;
+          code += `  location              = "eastus"\n`;
+          code += `  resource_group_name   = azurerm_resource_group.main.name\n`;
+          code += `  vm_size               = "${(resource.instanceType || 'Standard_B2s')}"\n\n`;
+          code += `  storage_os_disk {\n`;
+          code += `    name              = "${resource.name}-osdisk"\n`;
+          code += `    caching           = "ReadWrite"\n`;
+          code += `    create_option     = "FromImage"\n`;
+          code += `    managed_disk_type = "Standard_LRS"\n`;
+          code += `  }\n\n`;
+          code += `  storage_image_reference {\n`;
+          code += `    publisher = "Canonical"\n`;
+          code += `    offer     = "UbuntuServer"\n`;
+          code += `    sku       = "18.04-LTS"\n`;
+          code += `    version   = "latest"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'azurerm_function_app') {
+          code += `  name                       = "${resource.name}"\n`;
+          code += `  location                   = "eastus"\n`;
+          code += `  resource_group_name        = azurerm_resource_group.main.name\n`;
+          code += `  app_service_plan_id        = azurerm_app_service_plan.main.id\n`;
+          code += `  storage_account_name       = azurerm_storage_account.main.name\n`;
+          code += `  storage_account_access_key = azurerm_storage_account.main.primary_access_key\n`;
+        } else if (resource.type === 'azurerm_mssql_database') {
+          code += `  name         = "${resource.name}"\n`;
+          code += `  server_id    = azurerm_mssql_server.main.id\n`;
+          code += `  collation    = "SQL_Latin1_General_CP1_CI_AS"\n`;
+          code += `  sku_name     = "${resource.instanceType || 'S0'}"\n`;
+        } else if (resource.type === 'azurerm_cosmosdb_account') {
+          code += `  name                = "${resource.name}"\n`;
+          code += `  location            = "eastus"\n`;
+          code += `  resource_group_name = azurerm_resource_group.main.name\n`;
+          code += `  offer_type          = "Standard"\n`;
+          code += `  kind                = "GlobalDocumentDB"\n\n`;
+          code += `  consistency_policy {\n`;
+          code += `    consistency_level = "Session"\n`;
+          code += `  }\n\n`;
+          code += `  geo_location {\n`;
+          code += `    location          = "eastus"\n`;
+          code += `    failover_priority = 0\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'azurerm_redis_cache') {
+          code += `  name                = "${resource.name}"\n`;
+          code += `  location            = "eastus"\n`;
+          code += `  resource_group_name = azurerm_resource_group.main.name\n`;
+          code += `  capacity            = 0\n`;
+          code += `  family              = "C"\n`;
+          code += `  sku_name            = "Basic"\n`;
+        } else if (resource.type === 'azurerm_storage_account') {
+          code += `  name                     = "${resource.name.replace(/-/g, '')}"\n`;
+          code += `  resource_group_name      = azurerm_resource_group.main.name\n`;
+          code += `  location                 = "eastus"\n`;
+          code += `  account_tier             = "Standard"\n`;
+          code += `  account_replication_type = "LRS"\n`;
+        } else if (resource.type === 'azurerm_managed_disk') {
+          code += `  name                 = "${resource.name}"\n`;
+          code += `  location             = "eastus"\n`;
+          code += `  resource_group_name  = azurerm_resource_group.main.name\n`;
+          code += `  storage_account_type = "Standard_LRS"\n`;
+          code += `  create_option        = "Empty"\n`;
+          code += `  disk_size_gb         = ${resource.volumeSize || 100}\n`;
         }
         
         code += `}\n\n`;
