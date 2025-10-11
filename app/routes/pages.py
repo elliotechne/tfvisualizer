@@ -240,29 +240,12 @@ def subscription_cancel():
 
 
 @bp.route('/projects')
-@jwt_required(optional=True)
 def projects_page():
     """
     Render projects management page
+    Uses client-side authentication via JWT in localStorage
 
     Returns:
         Rendered HTML projects page
     """
-    from flask import redirect, url_for, flash
-
-    # Check if JWT token exists and is valid
-    try:
-        verify_jwt_in_request()
-        user_id = get_jwt_identity()
-    except Exception:
-        # No valid token found - redirect to login
-        flash('Please log in to access your projects', 'error')
-        return redirect(url_for('pages.login_page'))
-
-    # Get user from database
-    user = User.query.get(user_id)
-    if not user:
-        flash('Please log in to access your projects', 'error')
-        return redirect(url_for('pages.login_page'))
-
-    return render_template('projects.html', user=user)
+    return render_template('projects.html')
