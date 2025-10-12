@@ -1836,12 +1836,23 @@
         return;
       }
 
-      console.log('Reading file:', file.name);
+      console.log('Reading file:', file.name, 'size:', file.size, 'type:', file.type);
 
       const reader = new FileReader();
       reader.onload = (e) => {
         const tfCode = e.target.result;
-        console.log('File loaded, length:', tfCode.length);
+        console.log('File loaded successfully');
+        console.log('Length:', tfCode.length);
+        console.log('First 500 characters:', tfCode.substring(0, 500));
+        console.log('Contains "resource"?', tfCode.includes('resource'));
+        console.log('Line count:', tfCode.split('\n').length);
+
+        // Show the actual content being parsed
+        if (tfCode.length === 0) {
+          alert('File is empty!');
+          return;
+        }
+
         parseTerraformCode(tfCode);
       };
       reader.onerror = (e) => {
