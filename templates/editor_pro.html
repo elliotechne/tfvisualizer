@@ -572,6 +572,7 @@
               <option value="gcp">Google Cloud (GCP)</option>
               <option value="azure">Microsoft Azure</option>
               <option value="digitalocean">DigitalOcean</option>
+              <option value="kubernetes">Kubernetes</option>
             </select>
           </div>
           <div class="cost-badge">
@@ -865,6 +866,35 @@
           { type: 'digitalocean_ssh_key', name: 'SSH Key', icon: '🔑', color: 'bg-indigo-600' },
           { type: 'digitalocean_floating_ip', name: 'Floating IP', icon: '🎯', color: 'bg-indigo-700' },
           { type: 'digitalocean_certificate', name: 'Certificate', icon: '🔐', color: 'bg-indigo-800' }
+        ]
+      },
+      kubernetes: {
+        Workloads: [
+          { type: 'kubernetes_deployment', name: 'Deployment', icon: '📦', color: 'bg-blue-500' },
+          { type: 'kubernetes_stateful_set', name: 'StatefulSet', icon: '💾', color: 'bg-blue-600' },
+          { type: 'kubernetes_daemon_set', name: 'DaemonSet', icon: '👥', color: 'bg-blue-700' },
+          { type: 'kubernetes_job', name: 'Job', icon: '⚙️', color: 'bg-blue-800' },
+          { type: 'kubernetes_cron_job', name: 'CronJob', icon: '⏰', color: 'bg-blue-900' }
+        ],
+        Network: [
+          { type: 'kubernetes_service', name: 'Service', icon: '🌐', color: 'bg-green-500' },
+          { type: 'kubernetes_ingress', name: 'Ingress', icon: '🚪', color: 'bg-green-600' },
+          { type: 'kubernetes_ingress_class', name: 'IngressClass', icon: '🏷️', color: 'bg-green-700' },
+          { type: 'kubernetes_network_policy', name: 'NetworkPolicy', icon: '🔒', color: 'bg-green-800' }
+        ],
+        'Config & Storage': [
+          { type: 'kubernetes_config_map', name: 'ConfigMap', icon: '⚙️', color: 'bg-purple-500' },
+          { type: 'kubernetes_secret', name: 'Secret', icon: '🔐', color: 'bg-purple-600' },
+          { type: 'kubernetes_persistent_volume', name: 'PersistentVolume', icon: '💿', color: 'bg-purple-700' },
+          { type: 'kubernetes_persistent_volume_claim', name: 'PVC', icon: '📋', color: 'bg-purple-800' },
+          { type: 'kubernetes_storage_class', name: 'StorageClass', icon: '🗄️', color: 'bg-purple-900' }
+        ],
+        'Access Control': [
+          { type: 'kubernetes_namespace', name: 'Namespace', icon: '📁', color: 'bg-orange-500' },
+          { type: 'kubernetes_service_account', name: 'ServiceAccount', icon: '👤', color: 'bg-orange-600' },
+          { type: 'kubernetes_role', name: 'Role', icon: '🎭', color: 'bg-orange-700' },
+          { type: 'kubernetes_role_binding', name: 'RoleBinding', icon: '🔗', color: 'bg-orange-800' },
+          { type: 'kubernetes_cluster_role', name: 'ClusterRole', icon: '👑', color: 'bg-orange-900' }
         ]
       }
     };
@@ -1653,6 +1683,114 @@
           code += `  type             = "lets_encrypt"\n`;
           code += `  domains          = ["example.com"]\n`;
         }
+        // Kubernetes Resources
+        else if (resource.type === 'kubernetes_deployment') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `    labels = {\n`;
+          code += `      app = "${resource.name}"\n`;
+          code += `    }\n`;
+          code += `  }\n\n`;
+          code += `  spec {\n`;
+          code += `    replicas = ${resource.replicas || 3}\n\n`;
+          code += `    selector {\n`;
+          code += `      match_labels = {\n`;
+          code += `        app = "${resource.name}"\n`;
+          code += `      }\n`;
+          code += `    }\n\n`;
+          code += `    template {\n`;
+          code += `      metadata {\n`;
+          code += `        labels = {\n`;
+          code += `          app = "${resource.name}"\n`;
+          code += `        }\n`;
+          code += `      }\n\n`;
+          code += `      spec {\n`;
+          code += `        container {\n`;
+          code += `          name  = "${resource.name}"\n`;
+          code += `          image = "${resource.image || 'nginx:latest'}"\n\n`;
+          code += `          port {\n`;
+          code += `            container_port = ${resource.containerPort || 80}\n`;
+          code += `          }\n`;
+          code += `        }\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_service') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n\n`;
+          code += `  spec {\n`;
+          code += `    selector = {\n`;
+          code += `      app = "${resource.app || resource.name}"\n`;
+          code += `    }\n\n`;
+          code += `    type = "${resource.serviceType || 'ClusterIP'}"\n\n`;
+          code += `    port {\n`;
+          code += `      port        = ${resource.port || 80}\n`;
+          code += `      target_port = ${resource.targetPort || 80}\n`;
+          code += `    }\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_ingress') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `    annotations = {\n`;
+          code += `      "kubernetes.io/ingress.class" = "${resource.ingressClass || 'nginx'}"\n`;
+          code += `    }\n`;
+          code += `  }\n\n`;
+          code += `  spec {\n`;
+          if (resource.host) {
+            code += `    rule {\n`;
+            code += `      host = "${resource.host}"\n\n`;
+            code += `      http {\n`;
+            code += `        path {\n`;
+            code += `          path = "${resource.path || '/'}"\n\n`;
+            code += `          backend {\n`;
+            code += `            service_name = "${resource.serviceName || 'example-service'}"\n`;
+            code += `            service_port = ${resource.servicePort || 80}\n`;
+            code += `          }\n`;
+            code += `        }\n`;
+            code += `      }\n`;
+            code += `    }\n`;
+          }
+          if (resource.tlsEnabled) {
+            code += `\n    tls {\n`;
+            code += `      hosts       = ["${resource.host || 'example.com'}"]\n`;
+            code += `      secret_name = "${resource.tlsSecret || 'tls-secret'}"\n`;
+            code += `    }\n`;
+          }
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_config_map') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n\n`;
+          code += `  data = {\n`;
+          code += `    "config.yaml" = "# Add your configuration here"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_secret') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n\n`;
+          code += `  type = "Opaque"\n\n`;
+          code += `  data = {\n`;
+          code += `    username = base64encode("admin")\n`;
+          code += `    password = base64encode("changeme")\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_namespace') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'kubernetes_persistent_volume_claim') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n\n`;
+          code += `  spec {\n`;
+          code += `    access_modes = ["ReadWriteOnce"]\n\n`;
+          code += `    resources {\n`;
+          code += `      requests = {\n`;
+          code += `        storage = "${resource.storage || '10Gi'}"\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+          code += `  }\n`;
+        }
 
         code += `}\n\n`;
       });
@@ -2033,6 +2171,87 @@
             </div>
           `;
         }
+        // Kubernetes Resources
+        else if (resource.type === 'kubernetes_ingress') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Host</label>
+              <input type="text" class="form-input" id="editHost" value="${resource.host || ''}" placeholder="e.g., example.com">
+              <div class="form-hint">Domain name for the ingress</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Path</label>
+              <input type="text" class="form-input" id="editPath" value="${resource.path || '/'}" placeholder="/">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Name</label>
+              <input type="text" class="form-input" id="editServiceName" value="${resource.serviceName || ''}" placeholder="e.g., my-service">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Port</label>
+              <input type="number" class="form-input" id="editServicePort" value="${resource.servicePort || 80}" placeholder="80">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ingress Class</label>
+              <input type="text" class="form-input" id="editIngressClass" value="${resource.ingressClass || 'nginx'}" placeholder="nginx">
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <input type="checkbox" id="editTlsEnabled" ${resource.tlsEnabled ? 'checked' : ''}> Enable TLS
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">TLS Secret Name</label>
+              <input type="text" class="form-input" id="editTlsSecret" value="${resource.tlsSecret || ''}" placeholder="tls-secret">
+            </div>
+          `;
+        } else if (resource.type === 'kubernetes_deployment') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Container Image</label>
+              <input type="text" class="form-input" id="editImage" value="${resource.image || 'nginx:latest'}" placeholder="nginx:latest">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Replicas</label>
+              <input type="number" class="form-input" id="editReplicas" value="${resource.replicas || 3}" min="1" placeholder="3">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Container Port</label>
+              <input type="number" class="form-input" id="editContainerPort" value="${resource.containerPort || 80}" placeholder="80">
+            </div>
+          `;
+        } else if (resource.type === 'kubernetes_service') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Service Type</label>
+              <select class="form-select" id="editServiceType">
+                <option value="ClusterIP" ${resource.serviceType === 'ClusterIP' ? 'selected' : ''}>ClusterIP</option>
+                <option value="NodePort" ${resource.serviceType === 'NodePort' ? 'selected' : ''}>NodePort</option>
+                <option value="LoadBalancer" ${resource.serviceType === 'LoadBalancer' ? 'selected' : ''}>LoadBalancer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Port</label>
+              <input type="number" class="form-input" id="editPort" value="${resource.port || 80}" placeholder="80">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Port</label>
+              <input type="number" class="form-input" id="editTargetPort" value="${resource.targetPort || 80}" placeholder="80">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Selector App</label>
+              <input type="text" class="form-input" id="editApp" value="${resource.app || resource.name}" placeholder="app-name">
+            </div>
+          `;
+        } else if (resource.type === 'kubernetes_persistent_volume_claim') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Storage Size</label>
+              <input type="text" class="form-input" id="editStorage" value="${resource.storage || '10Gi'}" placeholder="10Gi">
+              <div class="form-hint">e.g., 10Gi, 100Gi, 1Ti</div>
+            </div>
+          `;
+        }
       }
 
       formHTML += `
@@ -2123,6 +2342,42 @@
           if (descInput) resource.description = descInput.value;
           if (purposeInput) resource.purpose = purposeInput.value;
           if (envInput) resource.environment = envInput.value;
+        }
+        // Kubernetes Resources
+        else if (resource.type === 'kubernetes_ingress') {
+          const hostInput = document.getElementById('editHost');
+          const pathInput = document.getElementById('editPath');
+          const serviceNameInput = document.getElementById('editServiceName');
+          const servicePortInput = document.getElementById('editServicePort');
+          const ingressClassInput = document.getElementById('editIngressClass');
+          const tlsEnabledInput = document.getElementById('editTlsEnabled');
+          const tlsSecretInput = document.getElementById('editTlsSecret');
+          if (hostInput) resource.host = hostInput.value;
+          if (pathInput) resource.path = pathInput.value;
+          if (serviceNameInput) resource.serviceName = serviceNameInput.value;
+          if (servicePortInput) resource.servicePort = parseInt(servicePortInput.value);
+          if (ingressClassInput) resource.ingressClass = ingressClassInput.value;
+          if (tlsEnabledInput) resource.tlsEnabled = tlsEnabledInput.checked;
+          if (tlsSecretInput) resource.tlsSecret = tlsSecretInput.value;
+        } else if (resource.type === 'kubernetes_deployment') {
+          const imageInput = document.getElementById('editImage');
+          const replicasInput = document.getElementById('editReplicas');
+          const containerPortInput = document.getElementById('editContainerPort');
+          if (imageInput) resource.image = imageInput.value;
+          if (replicasInput) resource.replicas = parseInt(replicasInput.value);
+          if (containerPortInput) resource.containerPort = parseInt(containerPortInput.value);
+        } else if (resource.type === 'kubernetes_service') {
+          const serviceTypeInput = document.getElementById('editServiceType');
+          const portInput = document.getElementById('editPort');
+          const targetPortInput = document.getElementById('editTargetPort');
+          const appInput = document.getElementById('editApp');
+          if (serviceTypeInput) resource.serviceType = serviceTypeInput.value;
+          if (portInput) resource.port = parseInt(portInput.value);
+          if (targetPortInput) resource.targetPort = parseInt(targetPortInput.value);
+          if (appInput) resource.app = appInput.value;
+        } else if (resource.type === 'kubernetes_persistent_volume_claim') {
+          const storageInput = document.getElementById('editStorage');
+          if (storageInput) resource.storage = storageInput.value;
         }
       }
 
