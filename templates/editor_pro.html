@@ -571,6 +571,7 @@
               <option value="aws">AWS</option>
               <option value="gcp">Google Cloud (GCP)</option>
               <option value="azure">Microsoft Azure</option>
+              <option value="digitalocean">DigitalOcean</option>
             </select>
           </div>
           <div class="cost-badge">
@@ -834,6 +835,36 @@
           { type: 'azurerm_network_security_group', name: 'Network Security Group', icon: '🔒', color: 'bg-orange-700' },
           { type: 'azurerm_lb', name: 'Load Balancer', icon: '⚖️', color: 'bg-orange-800' },
           { type: 'azurerm_nat_gateway', name: 'NAT Gateway', icon: '🚪', color: 'bg-orange-900' }
+        ]
+      },
+      digitalocean: {
+        Compute: [
+          { type: 'digitalocean_droplet', name: 'Droplet', icon: '💧', color: 'bg-blue-500', defaultInstance: 's-2vcpu-4gb' },
+          { type: 'digitalocean_kubernetes_cluster', name: 'Kubernetes', icon: '☸️', color: 'bg-blue-600' },
+          { type: 'digitalocean_app', name: 'App Platform', icon: '📱', color: 'bg-blue-700' }
+        ],
+        Database: [
+          { type: 'digitalocean_database_cluster', name: 'Managed Database', icon: '🗄️', color: 'bg-purple-500', defaultInstance: 'db-s-2vcpu-4gb' },
+          { type: 'digitalocean_database_db', name: 'Database', icon: '📊', color: 'bg-purple-600' },
+          { type: 'digitalocean_database_user', name: 'Database User', icon: '👤', color: 'bg-purple-700' }
+        ],
+        Storage: [
+          { type: 'digitalocean_spaces_bucket', name: 'Spaces Bucket', icon: '📦', color: 'bg-green-500' },
+          { type: 'digitalocean_volume', name: 'Block Storage', icon: '💾', color: 'bg-green-600', defaultSize: 100 },
+          { type: 'digitalocean_cdn', name: 'CDN', icon: '🌍', color: 'bg-green-700' }
+        ],
+        Network: [
+          { type: 'digitalocean_vpc', name: 'VPC', icon: '🌐', color: 'bg-orange-500' },
+          { type: 'digitalocean_firewall', name: 'Firewall', icon: '🔒', color: 'bg-orange-600' },
+          { type: 'digitalocean_loadbalancer', name: 'Load Balancer', icon: '⚖️', color: 'bg-orange-700' },
+          { type: 'digitalocean_domain', name: 'Domain', icon: '🔗', color: 'bg-orange-800' },
+          { type: 'digitalocean_record', name: 'DNS Record', icon: '📝', color: 'bg-orange-900' }
+        ],
+        'Project & Other': [
+          { type: 'digitalocean_project', name: 'Project', icon: '📁', color: 'bg-indigo-500' },
+          { type: 'digitalocean_ssh_key', name: 'SSH Key', icon: '🔑', color: 'bg-indigo-600' },
+          { type: 'digitalocean_floating_ip', name: 'Floating IP', icon: '🎯', color: 'bg-indigo-700' },
+          { type: 'digitalocean_certificate', name: 'Certificate', icon: '🔐', color: 'bg-indigo-800' }
         ]
       }
     };
@@ -1510,7 +1541,119 @@
           code += `  create_option        = "Empty"\n`;
           code += `  disk_size_gb         = ${resource.volumeSize || 100}\n`;
         }
-        
+        // DigitalOcean Resources
+        else if (resource.type === 'digitalocean_droplet') {
+          code += `  image  = "ubuntu-22-04-x64"\n`;
+          code += `  name   = "${resource.name}"\n`;
+          code += `  region = "nyc3"\n`;
+          code += `  size   = "${resource.instanceType || 's-2vcpu-4gb'}"\n`;
+        } else if (resource.type === 'digitalocean_kubernetes_cluster') {
+          code += `  name    = "${resource.name}"\n`;
+          code += `  region  = "nyc3"\n`;
+          code += `  version = "1.28.2-do.0"\n\n`;
+          code += `  node_pool {\n`;
+          code += `    name       = "${resource.name}-pool"\n`;
+          code += `    size       = "s-2vcpu-4gb"\n`;
+          code += `    node_count = 3\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'digitalocean_app') {
+          code += `  spec {\n`;
+          code += `    name   = "${resource.name}"\n`;
+          code += `    region = "nyc"\n\n`;
+          code += `    service {\n`;
+          code += `      name               = "web"\n`;
+          code += `      instance_count     = 1\n`;
+          code += `      instance_size_slug = "basic-xxs"\n`;
+          code += `    }\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'digitalocean_database_cluster') {
+          code += `  name       = "${resource.name}"\n`;
+          code += `  engine     = "pg"\n`;
+          code += `  version    = "15"\n`;
+          code += `  size       = "${resource.instanceType || 'db-s-2vcpu-4gb'}"\n`;
+          code += `  region     = "nyc3"\n`;
+          code += `  node_count = 1\n`;
+        } else if (resource.type === 'digitalocean_database_db') {
+          code += `  cluster_id = digitalocean_database_cluster.main.id\n`;
+          code += `  name       = "${resource.name}"\n`;
+        } else if (resource.type === 'digitalocean_database_user') {
+          code += `  cluster_id = digitalocean_database_cluster.main.id\n`;
+          code += `  name       = "${resource.name}"\n`;
+        } else if (resource.type === 'digitalocean_spaces_bucket') {
+          code += `  name   = "${resource.name}"\n`;
+          code += `  region = "nyc3"\n`;
+          code += `  acl    = "private"\n`;
+        } else if (resource.type === 'digitalocean_volume') {
+          code += `  region                  = "nyc3"\n`;
+          code += `  name                    = "${resource.name}"\n`;
+          code += `  size                    = ${resource.volumeSize || 100}\n`;
+          code += `  initial_filesystem_type = "ext4"\n`;
+        } else if (resource.type === 'digitalocean_cdn') {
+          code += `  origin = digitalocean_spaces_bucket.main.bucket_domain_name\n`;
+        } else if (resource.type === 'digitalocean_vpc') {
+          code += `  name     = "${resource.name}"\n`;
+          code += `  region   = "nyc3"\n`;
+          code += `  ip_range = "10.10.10.0/24"\n`;
+        } else if (resource.type === 'digitalocean_firewall') {
+          code += `  name = "${resource.name}"\n\n`;
+          code += `  droplet_ids = []\n\n`;
+          code += `  inbound_rule {\n`;
+          code += `    protocol         = "tcp"\n`;
+          code += `    port_range       = "22"\n`;
+          code += `    source_addresses = ["0.0.0.0/0", "::/0"]\n`;
+          code += `  }\n\n`;
+          code += `  inbound_rule {\n`;
+          code += `    protocol         = "tcp"\n`;
+          code += `    port_range       = "80"\n`;
+          code += `    source_addresses = ["0.0.0.0/0", "::/0"]\n`;
+          code += `  }\n\n`;
+          code += `  inbound_rule {\n`;
+          code += `    protocol         = "tcp"\n`;
+          code += `    port_range       = "443"\n`;
+          code += `    source_addresses = ["0.0.0.0/0", "::/0"]\n`;
+          code += `  }\n\n`;
+          code += `  outbound_rule {\n`;
+          code += `    protocol              = "tcp"\n`;
+          code += `    port_range            = "1-65535"\n`;
+          code += `    destination_addresses = ["0.0.0.0/0", "::/0"]\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'digitalocean_loadbalancer') {
+          code += `  name   = "${resource.name}"\n`;
+          code += `  region = "nyc3"\n\n`;
+          code += `  forwarding_rule {\n`;
+          code += `    entry_port     = 80\n`;
+          code += `    entry_protocol = "http"\n\n`;
+          code += `    target_port     = 80\n`;
+          code += `    target_protocol = "http"\n`;
+          code += `  }\n\n`;
+          code += `  healthcheck {\n`;
+          code += `    port     = 80\n`;
+          code += `    protocol = "http"\n`;
+          code += `    path     = "/"\n`;
+          code += `  }\n`;
+        } else if (resource.type === 'digitalocean_domain') {
+          code += `  name = "${resource.name}"\n`;
+        } else if (resource.type === 'digitalocean_record') {
+          code += `  domain = digitalocean_domain.main.name\n`;
+          code += `  type   = "A"\n`;
+          code += `  name   = "${resource.name}"\n`;
+          code += `  value  = "192.0.2.1"\n`;
+        } else if (resource.type === 'digitalocean_project') {
+          code += `  name        = "${resource.name}"\n`;
+          code += `  description = "A project for ${resource.displayName}"\n`;
+          code += `  purpose     = "Web Application"\n`;
+          code += `  environment = "Production"\n`;
+        } else if (resource.type === 'digitalocean_ssh_key') {
+          code += `  name       = "${resource.name}"\n`;
+          code += `  public_key = file("~/.ssh/id_rsa.pub")\n`;
+        } else if (resource.type === 'digitalocean_floating_ip') {
+          code += `  region = "nyc3"\n`;
+        } else if (resource.type === 'digitalocean_certificate') {
+          code += `  name             = "${resource.name}"\n`;
+          code += `  type             = "lets_encrypt"\n`;
+          code += `  domains          = ["example.com"]\n`;
+        }
+
         code += `}\n\n`;
       });
       
