@@ -2724,59 +2724,95 @@
               let tlsSecret = '';
 
               if (currentType === 'kubernetes_ingress' || currentType === 'kubernetes_ingress_v1') {
+                console.log('Parsing Kubernetes Ingress, content length:', currentContent.length);
+                console.log('Content preview:', currentContent.substring(0, 300));
+
                 // Parse host from rule block
                 const hostMatch = currentContent.match(/host\s*=\s*"([^"]+)"/);
-                if (hostMatch) host = hostMatch[1];
+                if (hostMatch) {
+                  host = hostMatch[1];
+                  console.log('Found host:', host);
+                }
 
                 // Parse path
                 const pathMatch = currentContent.match(/path\s*=\s*"([^"]+)"/);
-                if (pathMatch) path = pathMatch[1];
+                if (pathMatch) {
+                  path = pathMatch[1];
+                  console.log('Found path:', path);
+                }
 
                 // Parse path_type (v1 only)
                 if (currentType === 'kubernetes_ingress_v1') {
                   const pathTypeMatch = currentContent.match(/path_type\s*=\s*"([^"]+)"/);
-                  if (pathTypeMatch) pathType = pathTypeMatch[1];
+                  if (pathTypeMatch) {
+                    pathType = pathTypeMatch[1];
+                    console.log('Found path_type:', pathType);
+                  }
                 }
 
                 // Parse service name - different for v1 vs legacy
                 if (currentType === 'kubernetes_ingress_v1') {
-                  // V1 uses service { name = "..." }
-                  const serviceNameMatch = currentContent.match(/service\s*\{[^}]*name\s*=\s*"([^"]+)"/s);
-                  if (serviceNameMatch) serviceName = serviceNameMatch[1];
+                  // V1 uses service { name = "..." } - need multiline and more flexible regex
+                  const serviceNameMatch = currentContent.match(/service\s*\{[\s\S]*?name\s*=\s*"([^"]+)"/);
+                  if (serviceNameMatch) {
+                    serviceName = serviceNameMatch[1];
+                    console.log('Found service name (v1):', serviceName);
+                  }
                 } else {
                   // Legacy uses service_name = "..."
                   const serviceNameMatch = currentContent.match(/service_name\s*=\s*"([^"]+)"/);
-                  if (serviceNameMatch) serviceName = serviceNameMatch[1];
+                  if (serviceNameMatch) {
+                    serviceName = serviceNameMatch[1];
+                    console.log('Found service name (legacy):', serviceName);
+                  }
                 }
 
                 // Parse service port - different for v1 vs legacy
                 if (currentType === 'kubernetes_ingress_v1') {
-                  // V1 uses port { number = 80 }
-                  const servicePortMatch = currentContent.match(/port\s*\{[^}]*number\s*=\s*(\d+)/s);
-                  if (servicePortMatch) servicePort = parseInt(servicePortMatch[1]);
+                  // V1 uses port { number = 80 } - need multiline regex
+                  const servicePortMatch = currentContent.match(/port\s*\{[\s\S]*?number\s*=\s*(\d+)/);
+                  if (servicePortMatch) {
+                    servicePort = parseInt(servicePortMatch[1]);
+                    console.log('Found service port (v1):', servicePort);
+                  }
                 } else {
                   // Legacy uses service_port = 80
                   const servicePortMatch = currentContent.match(/service_port\s*=\s*(\d+)/);
-                  if (servicePortMatch) servicePort = parseInt(servicePortMatch[1]);
+                  if (servicePortMatch) {
+                    servicePort = parseInt(servicePortMatch[1]);
+                    console.log('Found service port (legacy):', servicePort);
+                  }
                 }
 
                 // Parse ingress class - different for v1 vs legacy
                 if (currentType === 'kubernetes_ingress_v1') {
                   // V1 uses ingress_class_name = "nginx"
                   const ingressClassMatch = currentContent.match(/ingress_class_name\s*=\s*"([^"]+)"/);
-                  if (ingressClassMatch) ingressClass = ingressClassMatch[1];
+                  if (ingressClassMatch) {
+                    ingressClass = ingressClassMatch[1];
+                    console.log('Found ingress_class_name:', ingressClass);
+                  }
                 } else {
                   // Legacy uses annotation
                   const ingressClassMatch = currentContent.match(/"kubernetes\.io\/ingress\.class"\s*=\s*"([^"]+)"/);
-                  if (ingressClassMatch) ingressClass = ingressClassMatch[1];
+                  if (ingressClassMatch) {
+                    ingressClass = ingressClassMatch[1];
+                    console.log('Found ingress class annotation:', ingressClass);
+                  }
                 }
 
                 // Parse TLS
-                if (currentContent.includes('tls {')) {
+                if (currentContent.includes('tls {') || currentContent.includes('tls{')) {
                   tlsEnabled = true;
                   const tlsSecretMatch = currentContent.match(/secret_name\s*=\s*"([^"]+)"/);
-                  if (tlsSecretMatch) tlsSecret = tlsSecretMatch[1];
+                  if (tlsSecretMatch) {
+                    tlsSecret = tlsSecretMatch[1];
+                    console.log('Found TLS secret:', tlsSecret);
+                  }
+                  console.log('TLS enabled');
                 }
+
+                console.log('Final parsed values:', { host, path, pathType, serviceName, servicePort, ingressClass, tlsEnabled, tlsSecret });
               }
 
               const resource = {
