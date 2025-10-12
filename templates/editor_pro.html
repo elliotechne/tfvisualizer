@@ -2733,9 +2733,12 @@
 
                 // Parse host from rule block
                 const hostMatch = currentContent.match(/host\s*=\s*"([^"]+)"/);
+                console.log('Host regex test:', hostMatch);
                 if (hostMatch) {
                   host = hostMatch[1];
-                  console.log('Found host:', host);
+                  console.log('✓ Found host:', host);
+                } else {
+                  console.log('✗ No host found');
                 }
 
                 // Parse path
@@ -2834,17 +2837,20 @@
                 color: template.color,
                 instanceType: instanceType || template.defaultInstance,
                 volumeSize: volumeSize || template.defaultSize || 0,
-                ami: ami || (currentType === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : ''),
-                // Kubernetes Ingress properties
-                host: host || undefined,
-                path: path || undefined,
-                pathType: pathType || undefined,
-                serviceName: serviceName || undefined,
-                servicePort: servicePort || undefined,
-                ingressClass: ingressClass || undefined,
-                tlsEnabled: tlsEnabled || undefined,
-                tlsSecret: tlsSecret || undefined
+                ami: ami || (currentType === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '')
               };
+
+              // Add Kubernetes Ingress properties only if they were parsed
+              if (currentType === 'kubernetes_ingress' || currentType === 'kubernetes_ingress_v1') {
+                if (host) resource.host = host;
+                if (path) resource.path = path;
+                if (pathType) resource.pathType = pathType;
+                if (serviceName) resource.serviceName = serviceName;
+                if (servicePort) resource.servicePort = servicePort;
+                if (ingressClass) resource.ingressClass = ingressClass;
+                if (tlsEnabled) resource.tlsEnabled = tlsEnabled;
+                if (tlsSecret) resource.tlsSecret = tlsSecret;
+              }
 
               resources.push(resource);
               positions[id] = { x: xOffset, y: yOffset };
