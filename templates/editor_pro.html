@@ -778,7 +778,27 @@
       azurerm_nat_gateway: 38.69,
       azurerm_function_app: 0.20,
       azurerm_cosmosdb_account: 23.36,
-      azurerm_redis_cache: 15.77
+      azurerm_redis_cache: 15.77,
+
+      // DigitalOcean
+      digitalocean_droplet: { 's-1vcpu-1gb': 6, 's-2vcpu-2gb': 18, 's-2vcpu-4gb': 24, 's-4vcpu-8gb': 48, 's-8vcpu-16gb': 96 },
+      digitalocean_database_cluster: { 'db-s-1vcpu-1gb': 15, 'db-s-2vcpu-4gb': 60, 'db-s-4vcpu-8gb': 120, 'db-s-8vcpu-16gb': 240 },
+      digitalocean_spaces_bucket: 5,
+      digitalocean_volume: 0.10,
+      digitalocean_vpc: 0,
+      digitalocean_firewall: 0,
+      digitalocean_loadbalancer: 12,
+      digitalocean_domain: 0,
+      digitalocean_record: 0,
+      digitalocean_cdn: 0,
+      digitalocean_project: 0,
+      digitalocean_ssh_key: 0,
+      digitalocean_floating_ip: 6,
+      digitalocean_certificate: 0,
+      digitalocean_kubernetes_cluster: 12,
+      digitalocean_app: 5,
+      digitalocean_database_db: 0,
+      digitalocean_database_user: 0
     };
 
     // Resource Templates by Cloud Provider
@@ -1264,6 +1284,14 @@
         return pricing.azurerm_mssql_database[resource.instanceType] || 15.00;
       } else if (resource.type === 'azurerm_managed_disk' && resource.volumeSize) {
         return pricing.azurerm_managed_disk * resource.volumeSize;
+      }
+      // DigitalOcean pricing
+      else if (resource.type === 'digitalocean_droplet' && resource.instanceType) {
+        return pricing.digitalocean_droplet[resource.instanceType] || 24;
+      } else if (resource.type === 'digitalocean_database_cluster' && resource.instanceType) {
+        return pricing.digitalocean_database_cluster[resource.instanceType] || 60;
+      } else if (resource.type === 'digitalocean_volume' && resource.volumeSize) {
+        return pricing.digitalocean_volume * resource.volumeSize;
       }
       // Default pricing for other resources
       else if (typeof pricing[resource.type] === 'number') {
