@@ -958,25 +958,9 @@
       const select = document.getElementById('cloudProviderSelect');
       currentCloudProvider = select.value;
 
-      // Clear canvas and re-render palette
-      if (resources.length > 0) {
-        const confirmed = confirm('Switching cloud providers will clear the current canvas. Continue?');
-        if (!confirmed) {
-          // Revert selection
-          select.value = currentCloudProvider;
-          return;
-        }
-      }
-
-      // Clear all resources
-      resources = [];
-      connections = [];
-      positions = {};
-      selectedResource = null;
-
-      // Re-render
+      // Just re-render the palette with new provider resources
+      // Keep existing resources on canvas (allows multi-cloud designs)
       renderPalette();
-      updateUI();
     }
 
     function setupEventListeners() {
