@@ -2464,10 +2464,20 @@
       let currentName = '';
       let currentContent = '';
 
-      let xOffset = 50;
-      let yOffset = 50;
+      // Canvas bounds (width is dynamic but we'll use a safe estimate, height is 1200px)
+      const CANVAS_WIDTH = 1000; // Safe estimate for canvas width
+      const CANVAS_HEIGHT = 1200;
+      const RESOURCE_WIDTH = 200;
+      const RESOURCE_HEIGHT = 120; // Approximate height of resource card
+      const MARGIN = 50;
+      const SPACING_X = 220; // Space between resources horizontally
+      const SPACING_Y = 140; // Space between resources vertically
+
+      let xOffset = MARGIN;
+      let yOffset = MARGIN;
       let resourcesInRow = 0;
       let importedCount = 0;
+      const maxResourcesPerRow = Math.floor((CANVAS_WIDTH - MARGIN) / SPACING_X);
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -2595,19 +2605,28 @@
                 ami: ami || (currentType === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '')
               };
 
+              // Check if resource will fit in canvas bounds
+              if (yOffset + RESOURCE_HEIGHT > CANVAS_HEIGHT - MARGIN) {
+                console.warn(`Resource ${currentName} would exceed canvas height, skipping positioning beyond bounds`);
+                // Stop importing more resources to avoid overflow
+                break;
+              }
+
               resources.push(resource);
               positions[id] = { x: xOffset, y: yOffset };
               importedCount++;
 
-              console.log(`Imported resource:`, resource);
+              console.log(`Imported resource at (${xOffset}, ${yOffset}):`, resource);
 
               // Layout resources in a grid
               resourcesInRow++;
-              xOffset += 220;
-              if (resourcesInRow >= 4) {
+              xOffset += SPACING_X;
+
+              // Move to next row if we've hit the limit or would exceed canvas width
+              if (resourcesInRow >= maxResourcesPerRow || xOffset + RESOURCE_WIDTH > CANVAS_WIDTH - MARGIN) {
                 resourcesInRow = 0;
-                xOffset = 50;
-                yOffset += 140;
+                xOffset = MARGIN;
+                yOffset += SPACING_Y;
               }
             } else {
               console.log(`Template not found for type: ${currentType}`);
