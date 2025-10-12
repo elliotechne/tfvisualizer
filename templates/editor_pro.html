@@ -1922,9 +1922,16 @@
           // End of resource block
           if (braceCount === 0) {
             // Find matching template across all cloud providers
-            const template = Object.values(resourceTemplates)
-              .flat()
-              .find(t => t.type === currentType);
+            let template = null;
+            for (const provider in cloudResourceTemplates) {
+              const providerTemplates = cloudResourceTemplates[provider];
+              const allTemplates = Object.values(providerTemplates).flat();
+              template = allTemplates.find(t => t.type === currentType);
+              if (template) {
+                console.log(`Found template for ${currentType} in provider ${provider}`);
+                break;
+              }
+            }
 
             if (template) {
               const id = `resource-${nextId++}`;
