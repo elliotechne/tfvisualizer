@@ -2464,20 +2464,25 @@
       let currentName = '';
       let currentContent = '';
 
-      // Canvas bounds (width is dynamic but we'll use a safe estimate, height is 1200px)
-      const CANVAS_WIDTH = 1000; // Safe estimate for canvas width
-      const CANVAS_HEIGHT = 1200;
+      // Get actual canvas dimensions
+      const canvas = document.getElementById('canvas');
+      const canvasRect = canvas.getBoundingClientRect();
+      const CANVAS_WIDTH = canvasRect.width;
+      const CANVAS_HEIGHT = 1200; // Fixed height from CSS
       const RESOURCE_WIDTH = 200;
       const RESOURCE_HEIGHT = 120; // Approximate height of resource card
       const MARGIN = 50;
       const SPACING_X = 220; // Space between resources horizontally
       const SPACING_Y = 140; // Space between resources vertically
 
+      console.log(`Canvas dimensions: ${CANVAS_WIDTH}px x ${CANVAS_HEIGHT}px`);
+
       let xOffset = MARGIN;
       let yOffset = MARGIN;
       let resourcesInRow = 0;
       let importedCount = 0;
-      const maxResourcesPerRow = Math.floor((CANVAS_WIDTH - MARGIN) / SPACING_X);
+      const maxResourcesPerRow = Math.floor((CANVAS_WIDTH - MARGIN * 2) / SPACING_X);
+      console.log(`Max resources per row: ${maxResourcesPerRow}`);
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -2549,6 +2554,14 @@
             }
 
             if (template) {
+              // Check if resource will fit in canvas bounds BEFORE creating it
+              if (yOffset + RESOURCE_HEIGHT > CANVAS_HEIGHT - MARGIN) {
+                console.warn(`Resource ${currentName} would exceed canvas height (y=${yOffset}), stopping import`);
+                alert(`Reached canvas limit. Imported ${importedCount} resources. Remaining resources skipped to keep them within canvas bounds.`);
+                // Stop importing more resources to avoid overflow
+                break;
+              }
+
               const id = `resource-${nextId++}`;
 
               // Parse instance type based on provider
@@ -2604,13 +2617,6 @@
                 volumeSize: volumeSize || template.defaultSize || 0,
                 ami: ami || (currentType === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '')
               };
-
-              // Check if resource will fit in canvas bounds
-              if (yOffset + RESOURCE_HEIGHT > CANVAS_HEIGHT - MARGIN) {
-                console.warn(`Resource ${currentName} would exceed canvas height, skipping positioning beyond bounds`);
-                // Stop importing more resources to avoid overflow
-                break;
-              }
 
               resources.push(resource);
               positions[id] = { x: xOffset, y: yOffset };
