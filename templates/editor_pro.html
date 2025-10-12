@@ -1761,20 +1761,22 @@
           code += `    }\n`;
           code += `  }\n\n`;
           code += `  spec {\n`;
-          if (resource.host) {
-            code += `    rule {\n`;
-            code += `      host = "${resource.host}"\n\n`;
-            code += `      http {\n`;
-            code += `        path {\n`;
-            code += `          path = "${resource.path || '/'}"\n\n`;
-            code += `          backend {\n`;
-            code += `            service_name = "${resource.serviceName || 'example-service'}"\n`;
-            code += `            service_port = ${resource.servicePort || 80}\n`;
-            code += `          }\n`;
-            code += `        }\n`;
-            code += `      }\n`;
-            code += `    }\n`;
-          }
+
+          // Always generate rule block with defaults
+          code += `    rule {\n`;
+          code += `      host = "${resource.host || 'example.com'}"\n\n`;
+          code += `      http {\n`;
+          code += `        path {\n`;
+          code += `          path = "${resource.path || '/'}"\n\n`;
+          code += `          backend {\n`;
+          code += `            service_name = "${resource.serviceName || 'example-service'}"\n`;
+          code += `            service_port = ${resource.servicePort || 80}\n`;
+          code += `          }\n`;
+          code += `        }\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+
+          // Generate TLS block if enabled
           if (resource.tlsEnabled) {
             code += `\n    tls {\n`;
             code += `      hosts       = ["${resource.host || 'example.com'}"]\n`;
@@ -1787,28 +1789,32 @@
           code += `    name = "${resource.name}"\n`;
           code += `  }\n\n`;
           code += `  spec {\n`;
-          if (resource.host) {
-            code += `    rule {\n`;
-            code += `      host = "${resource.host}"\n\n`;
-            code += `      http {\n`;
-            code += `        path {\n`;
-            code += `          path = "${resource.path || '/'}"\n`;
-            code += `          path_type = "${resource.pathType || 'Prefix'}"\n\n`;
-            code += `          backend {\n`;
-            code += `            service {\n`;
-            code += `              name = "${resource.serviceName || 'example-service'}"\n`;
-            code += `              port {\n`;
-            code += `                number = ${resource.servicePort || 80}\n`;
-            code += `              }\n`;
-            code += `            }\n`;
-            code += `          }\n`;
-            code += `        }\n`;
-            code += `      }\n`;
-            code += `    }\n`;
-          }
+
+          // Always generate ingress_class_name if present
           if (resource.ingressClass) {
-            code += `\n    ingress_class_name = "${resource.ingressClass}"\n`;
+            code += `    ingress_class_name = "${resource.ingressClass}"\n\n`;
           }
+
+          // Always generate rule block with defaults
+          code += `    rule {\n`;
+          code += `      host = "${resource.host || 'example.com'}"\n\n`;
+          code += `      http {\n`;
+          code += `        path {\n`;
+          code += `          path = "${resource.path || '/'}"\n`;
+          code += `          path_type = "${resource.pathType || 'Prefix'}"\n\n`;
+          code += `          backend {\n`;
+          code += `            service {\n`;
+          code += `              name = "${resource.serviceName || 'example-service'}"\n`;
+          code += `              port {\n`;
+          code += `                number = ${resource.servicePort || 80}\n`;
+          code += `              }\n`;
+          code += `            }\n`;
+          code += `          }\n`;
+          code += `        }\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+
+          // Generate TLS block if enabled
           if (resource.tlsEnabled) {
             code += `\n    tls {\n`;
             code += `      hosts       = ["${resource.host || 'example.com'}"]\n`;
