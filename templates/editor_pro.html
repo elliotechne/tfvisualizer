@@ -661,8 +661,11 @@
             <div style="display: flex; gap: 8px;">
               <label class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px; cursor: pointer;">
                 📤 Import .tf
-                <input type="file" accept=".tf,.hcl" onchange="importTerraformFile(event)" style="display: none;">
+                <input type="file" accept=".tf,.hcl" onchange="importTerraformFile(event)" style="display: none;" id="tfImportInput">
               </label>
+              <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="testImport()">
+                🧪 Test
+              </button>
               <button class="btn btn-primary" style="font-size: 12px; padding: 4px 12px; display: none;" id="exportBtn" onclick="exportCode()">
                 ⬇ Export
               </button>
@@ -2134,6 +2137,31 @@
         // Auto-load project state
         loadProjectState();
       }
+    }
+
+    // Test import with sample code
+    function testImport() {
+      console.log('=== Running Test Import ===');
+      const testCode = `resource "aws_instance" "web" {
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "public" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+}`;
+
+      console.log('Test code:', testCode);
+      parseTerraformCode(testCode);
     }
 
     // Start the app
