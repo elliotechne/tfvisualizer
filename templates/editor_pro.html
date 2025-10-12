@@ -2514,16 +2514,28 @@
 
           // End of resource block
           if (braceCount === 0) {
-            // Find matching template across all cloud providers
+            // Find matching template - only check current cloud provider
             let template = null;
+            let foundProvider = null;
+
+            // First, determine which provider this resource belongs to
             for (const provider in cloudResourceTemplates) {
               const providerTemplates = cloudResourceTemplates[provider];
               const allTemplates = Object.values(providerTemplates).flat();
-              template = allTemplates.find(t => t.type === currentType);
-              if (template) {
+              const foundTemplate = allTemplates.find(t => t.type === currentType);
+              if (foundTemplate) {
+                template = foundTemplate;
+                foundProvider = provider;
                 console.log(`Found template for ${currentType} in provider ${provider}`);
                 break;
               }
+            }
+
+            // Check if the resource's provider matches the currently selected provider
+            if (template && foundProvider !== currentCloudProvider) {
+              console.log(`Skipping ${currentType} - belongs to ${foundProvider} but current provider is ${currentCloudProvider}`);
+              alert(`Cannot import ${currentType} resource. This resource belongs to ${foundProvider} provider, but you have ${currentCloudProvider} selected. Please switch to the correct cloud provider first.`);
+              template = null; // Skip this resource
             }
 
             if (template) {
