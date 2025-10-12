@@ -2724,8 +2724,12 @@
               let tlsSecret = '';
 
               if (currentType === 'kubernetes_ingress' || currentType === 'kubernetes_ingress_v1') {
-                console.log('Parsing Kubernetes Ingress, content length:', currentContent.length);
-                console.log('Content preview:', currentContent.substring(0, 300));
+                console.log('==== Parsing Kubernetes Ingress ====');
+                console.log('Resource type:', currentType);
+                console.log('Resource name:', currentName);
+                console.log('Content length:', currentContent.length);
+                console.log('Full content:');
+                console.log(currentContent);
 
                 // Parse host from rule block
                 const hostMatch = currentContent.match(/host\s*=\s*"([^"]+)"/);
@@ -2813,6 +2817,12 @@
                 }
 
                 console.log('Final parsed values:', { host, path, pathType, serviceName, servicePort, ingressClass, tlsEnabled, tlsSecret });
+
+                // Show alert if nothing was parsed to help debug
+                if (!host && !serviceName && !ingressClass) {
+                  console.warn('WARNING: No ingress properties were parsed!');
+                  alert(`Ingress import: No properties found in resource.\n\nCheck console (F12) for full content.\n\nContent length: ${currentContent.length} chars`);
+                }
               }
 
               const resource = {
