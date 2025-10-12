@@ -890,6 +890,7 @@
         Network: [
           { type: 'kubernetes_service', name: 'Service', icon: '🌐', color: 'bg-green-500' },
           { type: 'kubernetes_ingress', name: 'Ingress', icon: '🚪', color: 'bg-green-600' },
+          { type: 'kubernetes_ingress_v1', name: 'Ingress V1', icon: '🚪', color: 'bg-green-600' },
           { type: 'kubernetes_ingress_class', name: 'IngressClass', icon: '🏷️', color: 'bg-green-700' },
           { type: 'kubernetes_network_policy', name: 'NetworkPolicy', icon: '🔒', color: 'bg-green-800' }
         ],
@@ -1753,6 +1754,40 @@
             code += `    }\n`;
           }
           code += `  }\n`;
+        } else if (resource.type === 'kubernetes_ingress_v1') {
+          code += `  metadata {\n`;
+          code += `    name = "${resource.name}"\n`;
+          code += `  }\n\n`;
+          code += `  spec {\n`;
+          if (resource.host) {
+            code += `    rule {\n`;
+            code += `      host = "${resource.host}"\n\n`;
+            code += `      http {\n`;
+            code += `        path {\n`;
+            code += `          path = "${resource.path || '/'}"\n`;
+            code += `          path_type = "${resource.pathType || 'Prefix'}"\n\n`;
+            code += `          backend {\n`;
+            code += `            service {\n`;
+            code += `              name = "${resource.serviceName || 'example-service'}"\n`;
+            code += `              port {\n`;
+            code += `                number = ${resource.servicePort || 80}\n`;
+            code += `              }\n`;
+            code += `            }\n`;
+            code += `          }\n`;
+            code += `        }\n`;
+            code += `      }\n`;
+            code += `    }\n`;
+          }
+          if (resource.ingressClass) {
+            code += `\n    ingress_class_name = "${resource.ingressClass}"\n`;
+          }
+          if (resource.tlsEnabled) {
+            code += `\n    tls {\n`;
+            code += `      hosts       = ["${resource.host || 'example.com'}"]\n`;
+            code += `      secret_name = "${resource.tlsSecret || 'tls-secret'}"\n`;
+            code += `    }\n`;
+          }
+          code += `  }\n`;
         } else if (resource.type === 'kubernetes_config_map') {
           code += `  metadata {\n`;
           code += `    name = "${resource.name}"\n`;
@@ -2200,6 +2235,49 @@
               <input type="text" class="form-input" id="editTlsSecret" value="${resource.tlsSecret || ''}" placeholder="tls-secret">
             </div>
           `;
+        } else if (resource.type === 'kubernetes_ingress_v1') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Host</label>
+              <input type="text" class="form-input" id="editHost" value="${resource.host || ''}" placeholder="e.g., example.com">
+              <div class="form-hint">Domain name for the ingress</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Path</label>
+              <input type="text" class="form-input" id="editPath" value="${resource.path || '/'}" placeholder="/">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Path Type</label>
+              <select class="form-select" id="editPathType">
+                <option value="Prefix" ${resource.pathType === 'Prefix' ? 'selected' : ''}>Prefix</option>
+                <option value="Exact" ${resource.pathType === 'Exact' ? 'selected' : ''}>Exact</option>
+                <option value="ImplementationSpecific" ${resource.pathType === 'ImplementationSpecific' ? 'selected' : ''}>ImplementationSpecific</option>
+              </select>
+              <div class="form-hint">How the path should be matched</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Name</label>
+              <input type="text" class="form-input" id="editServiceName" value="${resource.serviceName || ''}" placeholder="e.g., my-service">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Service Port</label>
+              <input type="number" class="form-input" id="editServicePort" value="${resource.servicePort || 80}" placeholder="80">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ingress Class Name</label>
+              <input type="text" class="form-input" id="editIngressClass" value="${resource.ingressClass || 'nginx'}" placeholder="nginx">
+              <div class="form-hint">V1 uses ingress_class_name instead of annotation</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <input type="checkbox" id="editTlsEnabled" ${resource.tlsEnabled ? 'checked' : ''}> Enable TLS
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">TLS Secret Name</label>
+              <input type="text" class="form-input" id="editTlsSecret" value="${resource.tlsSecret || ''}" placeholder="tls-secret">
+            </div>
+          `;
         } else if (resource.type === 'kubernetes_deployment') {
           formHTML += `
             <div class="form-group">
@@ -2349,6 +2427,23 @@
           const tlsSecretInput = document.getElementById('editTlsSecret');
           if (hostInput) resource.host = hostInput.value;
           if (pathInput) resource.path = pathInput.value;
+          if (serviceNameInput) resource.serviceName = serviceNameInput.value;
+          if (servicePortInput) resource.servicePort = parseInt(servicePortInput.value);
+          if (ingressClassInput) resource.ingressClass = ingressClassInput.value;
+          if (tlsEnabledInput) resource.tlsEnabled = tlsEnabledInput.checked;
+          if (tlsSecretInput) resource.tlsSecret = tlsSecretInput.value;
+        } else if (resource.type === 'kubernetes_ingress_v1') {
+          const hostInput = document.getElementById('editHost');
+          const pathInput = document.getElementById('editPath');
+          const pathTypeInput = document.getElementById('editPathType');
+          const serviceNameInput = document.getElementById('editServiceName');
+          const servicePortInput = document.getElementById('editServicePort');
+          const ingressClassInput = document.getElementById('editIngressClass');
+          const tlsEnabledInput = document.getElementById('editTlsEnabled');
+          const tlsSecretInput = document.getElementById('editTlsSecret');
+          if (hostInput) resource.host = hostInput.value;
+          if (pathInput) resource.path = pathInput.value;
+          if (pathTypeInput) resource.pathType = pathTypeInput.value;
           if (serviceNameInput) resource.serviceName = serviceNameInput.value;
           if (servicePortInput) resource.servicePort = parseInt(servicePortInput.value);
           if (ingressClassInput) resource.ingressClass = ingressClassInput.value;
