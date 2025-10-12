@@ -1543,13 +1543,13 @@
         }
         // DigitalOcean Resources
         else if (resource.type === 'digitalocean_droplet') {
-          code += `  image  = "ubuntu-22-04-x64"\n`;
+          code += `  image  = "${resource.image || 'ubuntu-22-04-x64'}"\n`;
           code += `  name   = "${resource.name}"\n`;
-          code += `  region = "nyc3"\n`;
+          code += `  region = "${resource.region || 'nyc3'}"\n`;
           code += `  size   = "${resource.instanceType || 's-2vcpu-4gb'}"\n`;
         } else if (resource.type === 'digitalocean_kubernetes_cluster') {
           code += `  name    = "${resource.name}"\n`;
-          code += `  region  = "nyc3"\n`;
+          code += `  region  = "${resource.region || 'nyc3'}"\n`;
           code += `  version = "1.28.2-do.0"\n\n`;
           code += `  node_pool {\n`;
           code += `    name       = "${resource.name}-pool"\n`;
@@ -1568,7 +1568,7 @@
           code += `  }\n`;
         } else if (resource.type === 'digitalocean_database_cluster') {
           code += `  name       = "${resource.name}"\n`;
-          code += `  engine     = "pg"\n`;
+          code += `  engine     = "${resource.engine || 'pg'}"\n`;
           code += `  version    = "15"\n`;
           code += `  size       = "${resource.instanceType || 'db-s-2vcpu-4gb'}"\n`;
           code += `  region     = "nyc3"\n`;
@@ -1580,9 +1580,9 @@
           code += `  cluster_id = digitalocean_database_cluster.main.id\n`;
           code += `  name       = "${resource.name}"\n`;
         } else if (resource.type === 'digitalocean_spaces_bucket') {
-          code += `  name   = "${resource.name}"\n`;
+          code += `  name   = "${resource.bucketName || resource.name}"\n`;
           code += `  region = "nyc3"\n`;
-          code += `  acl    = "private"\n`;
+          code += `  acl    = "${resource.acl || 'private'}"\n`;
         } else if (resource.type === 'digitalocean_volume') {
           code += `  region                  = "nyc3"\n`;
           code += `  name                    = "${resource.name}"\n`;
@@ -1593,7 +1593,7 @@
         } else if (resource.type === 'digitalocean_vpc') {
           code += `  name     = "${resource.name}"\n`;
           code += `  region   = "nyc3"\n`;
-          code += `  ip_range = "10.10.10.0/24"\n`;
+          code += `  ip_range = "${resource.ipRange || '10.10.10.0/24'}"\n`;
         } else if (resource.type === 'digitalocean_firewall') {
           code += `  name = "${resource.name}"\n\n`;
           code += `  droplet_ids = []\n\n`;
@@ -1632,17 +1632,17 @@
           code += `    path     = "/"\n`;
           code += `  }\n`;
         } else if (resource.type === 'digitalocean_domain') {
-          code += `  name = "${resource.name}"\n`;
+          code += `  name = "${resource.domain || resource.name}"\n`;
         } else if (resource.type === 'digitalocean_record') {
           code += `  domain = digitalocean_domain.main.name\n`;
-          code += `  type   = "A"\n`;
-          code += `  name   = "${resource.name}"\n`;
-          code += `  value  = "192.0.2.1"\n`;
+          code += `  type   = "${resource.recordType || 'A'}"\n`;
+          code += `  name   = "${resource.recordName || resource.name}"\n`;
+          code += `  value  = "${resource.recordValue || '192.0.2.1'}"\n`;
         } else if (resource.type === 'digitalocean_project') {
           code += `  name        = "${resource.name}"\n`;
-          code += `  description = "A project for ${resource.displayName}"\n`;
-          code += `  purpose     = "Web Application"\n`;
-          code += `  environment = "Production"\n`;
+          code += `  description = "${resource.description || 'A project for ' + resource.displayName}"\n`;
+          code += `  purpose     = "${resource.purpose || 'Web Application'}"\n`;
+          code += `  environment = "${resource.environment || 'Production'}"\n`;
         } else if (resource.type === 'digitalocean_ssh_key') {
           code += `  name       = "${resource.name}"\n`;
           code += `  public_key = file("~/.ssh/id_rsa.pub")\n`;
@@ -1899,6 +1899,140 @@
             </div>
           `;
         }
+        // DigitalOcean Resources
+        else if (resource.type === 'digitalocean_droplet') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Droplet Size</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="s-1vcpu-1gb" ${resource.instanceType === 's-1vcpu-1gb' ? 'selected' : ''}>1 vCPU, 1GB RAM - $6/mo</option>
+                <option value="s-1vcpu-2gb" ${resource.instanceType === 's-1vcpu-2gb' ? 'selected' : ''}>1 vCPU, 2GB RAM - $12/mo</option>
+                <option value="s-2vcpu-2gb" ${resource.instanceType === 's-2vcpu-2gb' ? 'selected' : ''}>2 vCPU, 2GB RAM - $18/mo</option>
+                <option value="s-2vcpu-4gb" ${resource.instanceType === 's-2vcpu-4gb' ? 'selected' : ''}>2 vCPU, 4GB RAM - $24/mo</option>
+                <option value="s-4vcpu-8gb" ${resource.instanceType === 's-4vcpu-8gb' ? 'selected' : ''}>4 vCPU, 8GB RAM - $48/mo</option>
+                <option value="s-8vcpu-16gb" ${resource.instanceType === 's-8vcpu-16gb' ? 'selected' : ''}>8 vCPU, 16GB RAM - $96/mo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Region</label>
+              <input type="text" class="form-input" id="editRegion" value="${resource.region || 'nyc3'}" placeholder="e.g., nyc3, sfo3, fra1">
+              <div class="form-hint">DigitalOcean datacenter region</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Image</label>
+              <input type="text" class="form-input" id="editImage" value="${resource.image || 'ubuntu-22-04-x64'}" placeholder="e.g., ubuntu-22-04-x64">
+              <div class="form-hint">OS image slug</div>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_database_cluster') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Database Size</label>
+              <select class="form-select" id="editInstanceType">
+                <option value="db-s-1vcpu-1gb" ${resource.instanceType === 'db-s-1vcpu-1gb' ? 'selected' : ''}>1 vCPU, 1GB RAM - $15/mo</option>
+                <option value="db-s-2vcpu-4gb" ${resource.instanceType === 'db-s-2vcpu-4gb' ? 'selected' : ''}>2 vCPU, 4GB RAM - $60/mo</option>
+                <option value="db-s-4vcpu-8gb" ${resource.instanceType === 'db-s-4vcpu-8gb' ? 'selected' : ''}>4 vCPU, 8GB RAM - $120/mo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Engine</label>
+              <select class="form-select" id="editEngine">
+                <option value="pg" ${resource.engine === 'pg' ? 'selected' : ''}>PostgreSQL</option>
+                <option value="mysql" ${resource.engine === 'mysql' ? 'selected' : ''}>MySQL</option>
+                <option value="redis" ${resource.engine === 'redis' ? 'selected' : ''}>Redis</option>
+                <option value="mongodb" ${resource.engine === 'mongodb' ? 'selected' : ''}>MongoDB</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_volume') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Volume Size (GB)</label>
+              <input type="number" class="form-input" id="editVolumeSize" value="${resource.volumeSize || 100}" min="1" placeholder="100">
+              <div class="form-hint">Cost: $${((resource.volumeSize || 100) * 0.10).toFixed(2)}/mo</div>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_domain') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Domain Name</label>
+              <input type="text" class="form-input" id="editDomain" value="${resource.domain || ''}" placeholder="e.g., example.com">
+              <div class="form-hint">Your domain name</div>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_record') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Record Type</label>
+              <select class="form-select" id="editRecordType">
+                <option value="A" ${resource.recordType === 'A' ? 'selected' : ''}>A</option>
+                <option value="AAAA" ${resource.recordType === 'AAAA' ? 'selected' : ''}>AAAA</option>
+                <option value="CNAME" ${resource.recordType === 'CNAME' ? 'selected' : ''}>CNAME</option>
+                <option value="MX" ${resource.recordType === 'MX' ? 'selected' : ''}>MX</option>
+                <option value="TXT" ${resource.recordType === 'TXT' ? 'selected' : ''}>TXT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Record Name</label>
+              <input type="text" class="form-input" id="editRecordName" value="${resource.recordName || '@'}" placeholder="e.g., www, @">
+              <div class="form-hint">Subdomain or @ for root</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Record Value</label>
+              <input type="text" class="form-input" id="editRecordValue" value="${resource.recordValue || ''}" placeholder="e.g., 192.0.2.1">
+              <div class="form-hint">IP address or hostname</div>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_spaces_bucket') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Bucket Name</label>
+              <input type="text" class="form-input" id="editBucketName" value="${resource.bucketName || resource.name}" placeholder="e.g., my-bucket">
+              <div class="form-hint">Spaces bucket name (must be unique)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ACL</label>
+              <select class="form-select" id="editAcl">
+                <option value="private" ${resource.acl === 'private' ? 'selected' : ''}>Private</option>
+                <option value="public-read" ${resource.acl === 'public-read' ? 'selected' : ''}>Public Read</option>
+              </select>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_vpc') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">IP Range (CIDR)</label>
+              <input type="text" class="form-input" id="editIpRange" value="${resource.ipRange || '10.10.10.0/24'}" placeholder="e.g., 10.10.10.0/24">
+              <div class="form-hint">VPC IP address range</div>
+            </div>
+          `;
+        } else if (resource.type === 'digitalocean_project') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-input" id="editDescription" rows="2" placeholder="Project description">${resource.description || ''}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purpose</label>
+              <select class="form-select" id="editPurpose">
+                <option value="Web Application" ${resource.purpose === 'Web Application' ? 'selected' : ''}>Web Application</option>
+                <option value="Service or API" ${resource.purpose === 'Service or API' ? 'selected' : ''}>Service or API</option>
+                <option value="Mobile App" ${resource.purpose === 'Mobile App' ? 'selected' : ''}>Mobile App</option>
+                <option value="Machine Learning" ${resource.purpose === 'Machine Learning' ? 'selected' : ''}>Machine Learning</option>
+                <option value="IoT" ${resource.purpose === 'IoT' ? 'selected' : ''}>IoT</option>
+                <option value="Other" ${resource.purpose === 'Other' ? 'selected' : ''}>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Environment</label>
+              <select class="form-select" id="editEnvironment">
+                <option value="Production" ${resource.environment === 'Production' ? 'selected' : ''}>Production</option>
+                <option value="Staging" ${resource.environment === 'Staging' ? 'selected' : ''}>Staging</option>
+                <option value="Development" ${resource.environment === 'Development' ? 'selected' : ''}>Development</option>
+              </select>
+            </div>
+          `;
+        }
       }
 
       formHTML += `
@@ -1950,6 +2084,45 @@
           resource.instanceType = document.getElementById('editInstanceType').value;
         } else if (resource.type === 'azurerm_managed_disk') {
           resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
+        }
+        // DigitalOcean Resources
+        else if (resource.type === 'digitalocean_droplet') {
+          resource.instanceType = document.getElementById('editInstanceType').value;
+          const regionInput = document.getElementById('editRegion');
+          const imageInput = document.getElementById('editImage');
+          if (regionInput) resource.region = regionInput.value;
+          if (imageInput) resource.image = imageInput.value;
+        } else if (resource.type === 'digitalocean_database_cluster') {
+          resource.instanceType = document.getElementById('editInstanceType').value;
+          const engineInput = document.getElementById('editEngine');
+          if (engineInput) resource.engine = engineInput.value;
+        } else if (resource.type === 'digitalocean_volume') {
+          resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 100;
+        } else if (resource.type === 'digitalocean_domain') {
+          const domainInput = document.getElementById('editDomain');
+          if (domainInput) resource.domain = domainInput.value;
+        } else if (resource.type === 'digitalocean_record') {
+          const recordTypeInput = document.getElementById('editRecordType');
+          const recordNameInput = document.getElementById('editRecordName');
+          const recordValueInput = document.getElementById('editRecordValue');
+          if (recordTypeInput) resource.recordType = recordTypeInput.value;
+          if (recordNameInput) resource.recordName = recordNameInput.value;
+          if (recordValueInput) resource.recordValue = recordValueInput.value;
+        } else if (resource.type === 'digitalocean_spaces_bucket') {
+          const bucketNameInput = document.getElementById('editBucketName');
+          const aclInput = document.getElementById('editAcl');
+          if (bucketNameInput) resource.bucketName = bucketNameInput.value;
+          if (aclInput) resource.acl = aclInput.value;
+        } else if (resource.type === 'digitalocean_vpc') {
+          const ipRangeInput = document.getElementById('editIpRange');
+          if (ipRangeInput) resource.ipRange = ipRangeInput.value;
+        } else if (resource.type === 'digitalocean_project') {
+          const descInput = document.getElementById('editDescription');
+          const purposeInput = document.getElementById('editPurpose');
+          const envInput = document.getElementById('editEnvironment');
+          if (descInput) resource.description = descInput.value;
+          if (purposeInput) resource.purpose = purposeInput.value;
+          if (envInput) resource.environment = envInput.value;
         }
       }
 
