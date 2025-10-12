@@ -1828,26 +1828,39 @@
 
     function importTerraformFile(event) {
       const file = event.target.files[0];
-      if (!file) return;
+      if (!file) {
+        console.log('No file selected');
+        return;
+      }
+
+      console.log('Reading file:', file.name);
 
       const reader = new FileReader();
       reader.onload = (e) => {
         const tfCode = e.target.result;
+        console.log('File loaded, length:', tfCode.length);
         parseTerraformCode(tfCode);
       };
+      reader.onerror = (e) => {
+        console.error('Error reading file:', e);
+        alert('Error reading file');
+      };
       reader.readAsText(file);
+
+      // Reset the input so the same file can be imported again
+      event.target.value = '';
     }
 
     function parseTerraformCode(code) {
-      console.log('Parsing Terraform code:', code.substring(0, 200) + '...');
+      console.log('=== Starting Terraform Import ===');
+      console.log('Code preview:', code.substring(0, 200) + '...');
 
       // Clear existing resources
       resources = [];
       connections = [];
       positions = {};
 
-      // Improved regex to handle nested blocks better
-      // Matches: resource "type" "name" { ... }
+      // Parse by counting braces line by line
       const lines = code.split('\n');
       let inResource = false;
       let braceCount = 0;
@@ -1872,14 +1885,36 @@
             currentName = resourceMatch[2];
             currentContent = '';
             braceCount = 1;
-            console.log(`Found resource: ${currentType} "${currentName}"`);
-          }
-        } else {
-          // Count braces to find end of block
-          braceCount += (line.match(/\{/g) || []).length;
-          braceCount -= (line.match(/\}/g) || []).length;
+            console.log(`Found resource on line ${i + 1}: ${currentType} "${currentName}"`);
 
+            // Check if there's content after the opening brace on the same line
+            const afterBrace = line.substring(line.indexOf('{') + 1).trim();
+            if (afterBrace) {
+              currentContent += afterBrace + '\n';
+              // Count any additional braces on this line
+              braceCount += (afterBrace.match(/\{/g) || []).length;
+              braceCount -= (afterBrace.match(/\}/g) || []).length;
+
+              if (braceCount === 0) {
+                // Resource block ended on same line (unlikely but possible)
+                inResource = false;
+              }
+            }
+            continue;
+          }
+        }
+
+        if (inResource) {
+          // Add line to content
           currentContent += line + '\n';
+
+          // Count braces in this line
+          const openBraces = (line.match(/\{/g) || []).length;
+          const closeBraces = (line.match(/\}/g) || []).length;
+          braceCount += openBraces;
+          braceCount -= closeBraces;
+
+          console.log(`Line ${i + 1}: braces {${openBraces} }${closeBraces}, depth: ${braceCount}`);
 
           // End of resource block
           if (braceCount === 0) {
