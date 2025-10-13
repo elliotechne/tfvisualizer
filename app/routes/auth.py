@@ -271,6 +271,8 @@ def google_callback():
         # Exchange code for token (must match the redirect_uri sent to Google)
         redirect_uri = url_for('auth.google_callback', _external=True, _scheme='https')
         token_url = 'https://oauth2.googleapis.com/token'
+
+        # Send as application/x-www-form-urlencoded with explicit headers
         token_data = {
             'code': code,
             'client_id': google_client_id,
@@ -279,11 +281,15 @@ def google_callback():
             'grant_type': 'authorization_code'
         }
 
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
         logger.info(f"Token exchange - client_id length: {len(google_client_id)}")
         logger.info(f"Token exchange - client_secret length: {len(google_client_secret)}")
         logger.info(f"Token exchange - redirect_uri: {redirect_uri}")
 
-        token_response = requests.post(token_url, data=token_data)
+        token_response = requests.post(token_url, data=token_data, headers=headers)
         token_json = token_response.json()
 
         logger.info(f"Google token response status: {token_response.status_code}")
