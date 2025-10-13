@@ -230,7 +230,8 @@ def google_login():
     if not google_client_id:
         return jsonify({'error': 'Google OAuth not configured'}), 500
 
-    redirect_uri = url_for('auth.google_callback', _external=True)
+    # Force HTTPS for redirect URI (required for OAuth)
+    redirect_uri = url_for('auth.google_callback', _external=True, _scheme='https')
 
     # Build OAuth URL with proper encoding
     params = {
@@ -261,8 +262,8 @@ def google_callback():
         if not google_client_id or not google_client_secret:
             return redirect('/login?error=oauth_not_configured')
 
-        # Exchange code for token
-        redirect_uri = url_for('auth.google_callback', _external=True)
+        # Exchange code for token (must match the redirect_uri sent to Google)
+        redirect_uri = url_for('auth.google_callback', _external=True, _scheme='https')
         token_url = 'https://oauth2.googleapis.com/token'
         token_data = {
             'code': code,
