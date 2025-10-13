@@ -479,29 +479,11 @@
 
     // Check if user is authenticated
     window.addEventListener('DOMContentLoaded', () => {
-      // Check for OAuth tokens in URL (from Google callback)
-      const urlParams = new URLSearchParams(window.location.search);
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
-
-      if (accessToken) {
-        // Store tokens from OAuth callback
-        localStorage.setItem('access_token', accessToken);
-        if (refreshToken) {
-          localStorage.setItem('refresh_token', refreshToken);
-        }
-
-        // Clean URL and reload to show dashboard properly
-        window.history.replaceState({}, document.title, '/dashboard');
-        window.location.reload();
-        return;
-      }
-
-      const token = localStorage.getItem('access_token');
-      if (!token && {{ 'true' if user else 'false' }}) {
-        // Token missing but user expected, redirect to login
+      {% if not user %}
+        // No user data from server, redirect to login
         window.location.href = '/login';
-      }
+        return;
+      {% endif %}
 
       // Check Stripe availability
       checkStripeAvailability();
