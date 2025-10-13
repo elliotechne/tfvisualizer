@@ -225,7 +225,11 @@
         TFVisualizer
       </a>
       <div class="nav-links">
+        {% if user and user.subscription_tier == 'pro' and user.subscription_status in ['active', 'trialing'] %}
+        <a href="/editor/pro">Editor</a>
+        {% else %}
         <a href="/editor">Editor</a>
+        {% endif %}
         <a href="/dashboard">Dashboard</a>
         <button onclick="logout()" class="btn-logout">Logout</button>
       </div>
