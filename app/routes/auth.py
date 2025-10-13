@@ -226,7 +226,7 @@ def google_login():
     """
     Initiate Google OAuth flow
     """
-    google_client_id = os.getenv('GOOGLE_CLIENT_ID')
+    google_client_id = os.getenv('GOOGLE_CLIENT_ID', '').strip()
     if not google_client_id:
         return jsonify({'error': 'Google OAuth not configured'}), 500
 
@@ -262,8 +262,8 @@ def google_callback():
         if not code:
             return redirect('/login?error=oauth_failed')
 
-        google_client_id = os.getenv('GOOGLE_CLIENT_ID')
-        google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        google_client_id = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+        google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
 
         if not google_client_id or not google_client_secret:
             return redirect('/login?error=oauth_not_configured')
