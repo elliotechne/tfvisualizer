@@ -350,8 +350,15 @@ def google_callback():
         access_token_jwt = create_access_token(identity=str(user.id))
         refresh_token_jwt = create_refresh_token(identity=str(user.id))
 
-        # Redirect to dashboard with tokens in URL (will be moved to localStorage by client)
-        return redirect(f'/dashboard?access_token={access_token_jwt}&refresh_token={refresh_token_jwt}')
+        # Create response with tokens in both cookies and URL
+        from flask_jwt_extended import set_access_cookies, set_refresh_cookies
+        from flask import make_response
+
+        response = make_response(redirect('/dashboard'))
+        set_access_cookies(response, access_token_jwt)
+        set_refresh_cookies(response, refresh_token_jwt)
+
+        return response
 
     except Exception as e:
         logger.error(f"Google OAuth callback error: {str(e)}")
