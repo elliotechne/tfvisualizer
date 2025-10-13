@@ -279,6 +279,10 @@ def google_callback():
             'grant_type': 'authorization_code'
         }
 
+        logger.info(f"Token exchange - client_id length: {len(google_client_id)}")
+        logger.info(f"Token exchange - client_secret length: {len(google_client_secret)}")
+        logger.info(f"Token exchange - redirect_uri: {redirect_uri}")
+
         token_response = requests.post(token_url, data=token_data)
         token_json = token_response.json()
 
