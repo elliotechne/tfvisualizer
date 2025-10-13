@@ -16,8 +16,13 @@ class User(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     name = db.Column(db.String(255), nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
     avatar_url = db.Column(db.Text, nullable=True)
+
+    # OAuth fields
+    oauth_provider = db.Column(db.String(50), nullable=True)  # 'google', 'github', etc.
+    oauth_id = db.Column(db.String(255), nullable=True)  # Provider's user ID
+    oauth_token = db.Column(db.Text, nullable=True)  # OAuth access token (encrypted in production)
 
     # Stripe fields
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)

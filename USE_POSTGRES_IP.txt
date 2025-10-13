@@ -1,0 +1,40 @@
+IMMEDIATE WORKAROUND - Use PostgreSQL Pod IP
+=============================================
+
+Since DNS is broken, use the PostgreSQL pod's IP address directly.
+
+Step 1: Get the IP
+------------------
+kubectl get pod postgres-0 -n tfvisualizer -o jsonpath='{.status.podIP}'
+
+Example output: 10.244.0.5
+
+Step 2: Edit terraform/kubernetes.tf
+-------------------------------------
+Change line 53-54 from:
+    DATABASE_URL = "postgresql://tfuser:${var.postgres_password}@postgres:5432/tfvisualizer"
+    DB_HOST      = "postgres"
+
+To (replace 10.244.0.5 with your actual IP):
+    DATABASE_URL = "postgresql://tfuser:${var.postgres_password}@10.244.0.5:5432/tfvisualizer"
+    DB_HOST      = "10.244.0.5"
+
+Step 3: Apply
+-------------
+cd terraform
+terraform apply -auto-approve
+
+Step 4: Restart app
+-------------------
+kubectl rollout restart deployment/tfvisualizer-app -n tfvisualizer
+
+Step 5: Check logs
+------------------
+kubectl logs -n tfvisualizer -l app=tfvisualizer --tail=50
+
+You should see:
+"PostgreSQL is accepting connections!"
+"Database 'tfvisualizer' is ready!"
+
+⚠️ WARNING: This IP will change if postgres pod restarts!
+Use this only while fixing the DNS issue.
