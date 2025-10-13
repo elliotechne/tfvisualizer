@@ -246,3 +246,17 @@ variable "letsencrypt_email" {
   type        = string
   sensitive   = true
 }
+
+# OAuth Configuration
+variable "google_client_id" {
+  description = "Google OAuth Client ID"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth Client Secret"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
