@@ -69,7 +69,8 @@ def create_app(config_class=Config):
         from flask_jwt_extended import verify_jwt_in_request
 
         # List of routes that require authentication
-        protected_routes = ['/editor', '/editor.html', '/dashboard']
+        # Note: /dashboard handles its own optional auth, so it's not in this list
+        protected_routes = ['/editor', '/editor.html']
 
         # Check if current path is protected
         if request.path in protected_routes or request.path.endswith('/editor.html'):
