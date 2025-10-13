@@ -10,6 +10,7 @@ from app.main import db
 from app.utils.logger import setup_logger
 import os
 import requests
+from urllib.parse import urlencode
 
 bp = Blueprint('auth', __name__)
 logger = setup_logger(__name__)
@@ -230,14 +231,16 @@ def google_login():
         return jsonify({'error': 'Google OAuth not configured'}), 500
 
     redirect_uri = url_for('auth.google_callback', _external=True)
-    google_auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={google_client_id}&"
-        f"redirect_uri={redirect_uri}&"
-        f"response_type=code&"
-        f"scope=openid%20email%20profile&"
-        f"access_type=offline"
-    )
+
+    # Build OAuth URL with proper encoding
+    params = {
+        'client_id': google_client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'access_type': 'offline'
+    }
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
 
     return redirect(google_auth_url)
 
