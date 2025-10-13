@@ -233,6 +233,10 @@ def google_login():
     # Force HTTPS for redirect URI (required for OAuth)
     redirect_uri = url_for('auth.google_callback', _external=True, _scheme='https')
 
+    # Log for debugging
+    logger.info(f"Google OAuth redirect_uri: {redirect_uri}")
+    logger.info(f"Google OAuth client_id: {google_client_id}")
+
     # Build OAuth URL with proper encoding
     params = {
         'client_id': google_client_id,
@@ -242,6 +246,8 @@ def google_login():
         'access_type': 'offline'
     }
     google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+    logger.info(f"Redirecting to: {google_auth_url}")
 
     return redirect(google_auth_url)
 
