@@ -282,8 +282,11 @@ def google_callback():
         token_response = requests.post(token_url, data=token_data)
         token_json = token_response.json()
 
+        logger.info(f"Google token response status: {token_response.status_code}")
+        logger.info(f"Google token response: {token_json}")
+
         if 'error' in token_json:
-            logger.error(f"Google OAuth token error: {token_json['error']}")
+            logger.error(f"Google OAuth token error: {token_json.get('error')}, description: {token_json.get('error_description')}")
             return redirect('/login?error=oauth_token_failed')
 
         access_token = token_json.get('access_token')
