@@ -350,11 +350,12 @@ def google_callback():
         access_token_jwt = create_access_token(identity=str(user.id))
         refresh_token_jwt = create_refresh_token(identity=str(user.id))
 
-        # Create response with tokens in both cookies and URL
+        # Create response with tokens in both cookies and URL (for localStorage)
         from flask_jwt_extended import set_access_cookies, set_refresh_cookies
         from flask import make_response
 
-        response = make_response(redirect('/dashboard'))
+        # Include tokens in URL so client can store in localStorage
+        response = make_response(redirect(f'/dashboard?access_token={access_token_jwt}&refresh_token={refresh_token_jwt}'))
         set_access_cookies(response, access_token_jwt)
         set_refresh_cookies(response, refresh_token_jwt)
 
