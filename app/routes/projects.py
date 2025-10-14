@@ -282,3 +282,93 @@ def load_project_state(project_id):
     except Exception as e:
         logger.error(f"Load project state error: {str(e)}")
         return jsonify({'error': 'Failed to load project state'}), 500
+
+
+@bp.route('/<project_id>/versions', methods=['GET'])
+@jwt_required()
+def list_versions(project_id):
+    """
+    List all versions of a project
+
+    Returns:
+        JSON with list of versions (metadata only, no full state)
+    """
+    try:
+        user_id = get_jwt_identity()
+        project = Project.query.get(project_id)
+
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Check ownership
+        if project.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all versions ordered by version number descending (newest first)
+        versions = ProjectVersion.query.filter_by(
+            project_id=project_id
+        ).order_by(ProjectVersion.version_number.desc()).all()
+
+        # Return minimal version info (no full state data)
+        version_list = [{
+            'id': v.id,
+            'version_number': v.version_number,
+            'created_by': v.created_by,
+            'created_at': v.created_at.isoformat(),
+            'resource_count': len(v.resources) if v.resources else 0
+        } for v in versions]
+
+        return jsonify({
+            'success': True,
+            'versions': version_list
+        }), 200
+
+    except Exception as e:
+        logger.error(f"List versions error: {str(e)}")
+        return jsonify({'error': 'Failed to list versions'}), 500
+
+
+@bp.route('/<project_id>/versions/<int:version_number>', methods=['GET'])
+@jwt_required()
+def load_specific_version(project_id, version_number):
+    """
+    Load a specific version of a project
+
+    Returns:
+        JSON with project state from specified version
+    """
+    try:
+        user_id = get_jwt_identity()
+        project = Project.query.get(project_id)
+
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        # Check ownership
+        if project.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get specific version
+        version = ProjectVersion.query.filter_by(
+            project_id=project_id,
+            version_number=version_number
+        ).first()
+
+        if not version:
+            return jsonify({'error': 'Version not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'state': {
+                'resources': version.resources,
+                'connections': version.connections,
+                'positions': version.positions,
+                'terraform_code': version.terraform_code
+            },
+            'version': version.version_number,
+            'created_at': version.created_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Load specific version error: {str(e)}")
+        return jsonify({'error': 'Failed to load version'}), 500

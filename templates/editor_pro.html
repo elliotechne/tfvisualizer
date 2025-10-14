@@ -619,6 +619,9 @@
               <button class="btn btn-secondary" id="loadBtn" onclick="loadProjectState()">
                 📂 Load
               </button>
+              <button class="btn btn-secondary" id="versionsBtn" onclick="showVersionHistory()" style="display: none;">
+                📜 History
+              </button>
               <button class="btn btn-secondary" id="connectBtn" onclick="toggleConnectionMode()">
                 🔗 Connect
               </button>
@@ -715,6 +718,22 @@
         <button class="icon-btn" style="color: #6b7280; font-size: 24px;" onclick="closeEditModal()">×</button>
       </div>
       <div id="editForm"></div>
+    </div>
+  </div>
+
+  <!-- Version History Modal -->
+  <div class="modal" id="versionModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📜 Version History</h3>
+        <button class="icon-btn" style="color: #6b7280; font-size: 24px;" onclick="closeVersionModal()">×</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="color: #6b7280; margin-bottom: 16px;">Select a version to load:</p>
+        <div id="versionList" style="max-height: 400px; overflow-y: auto;">
+          <!-- Version list will be populated here -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -3001,6 +3020,136 @@
       }
     }
 
+    async function showVersionHistory() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to view version history');
+        return;
+      }
+
+      if (!currentProjectId) {
+        alert('Please open a project first');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${currentProjectId}/versions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const versions = data.versions || [];
+
+          if (versions.length === 0) {
+            alert('No versions saved yet. Save your project to create the first version.');
+            return;
+          }
+
+          // Populate version list
+          const versionList = document.getElementById('versionList');
+          versionList.innerHTML = '';
+
+          versions.forEach(version => {
+            const versionItem = document.createElement('div');
+            versionItem.style.cssText = `
+              padding: 16px;
+              margin-bottom: 12px;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              cursor: pointer;
+              transition: all 0.2s;
+            `;
+            versionItem.onmouseenter = () => {
+              versionItem.style.borderColor = '#667eea';
+              versionItem.style.background = '#f9fafb';
+            };
+            versionItem.onmouseleave = () => {
+              versionItem.style.borderColor = '#e5e7eb';
+              versionItem.style.background = 'white';
+            };
+            versionItem.onclick = () => loadSpecificVersion(version.version_number);
+
+            const date = new Date(version.created_at);
+            const dateStr = date.toLocaleString();
+
+            versionItem.innerHTML = `
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">
+                    Version ${version.version_number}
+                  </div>
+                  <div style="font-size: 12px; color: #6b7280;">
+                    ${dateStr} • ${version.resource_count} resources
+                  </div>
+                </div>
+                <button onclick="loadSpecificVersion(${version.version_number}); event.stopPropagation();"
+                        style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                  Load
+                </button>
+              </div>
+            `;
+
+            versionList.appendChild(versionItem);
+          });
+
+          // Show modal
+          document.getElementById('versionModal').classList.add('active');
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to load version history');
+        }
+      } catch (error) {
+        console.error('Version history error:', error);
+        alert('Error loading version history');
+      }
+    }
+
+    async function loadSpecificVersion(versionNumber) {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      if (!currentProjectId) return;
+
+      try {
+        const response = await fetch(`/api/projects/${currentProjectId}/versions/${versionNumber}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Load the state
+          resources = data.state.resources || [];
+          connections = data.state.connections || [];
+          positions = data.state.positions || {};
+
+          // Update UI
+          updateUI();
+          renderCanvas();
+
+          // Close modal
+          closeVersionModal();
+
+          alert(`Version ${versionNumber} loaded successfully!`);
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to load version');
+        }
+      } catch (error) {
+        console.error('Load version error:', error);
+        alert('Error loading version');
+      }
+    }
+
+    function closeVersionModal() {
+      document.getElementById('versionModal').classList.remove('active');
+    }
+
     // Check URL for project ID and show save/load buttons
     function initProjectFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -3010,6 +3159,7 @@
         currentProjectId = projectId;
         document.getElementById('saveBtn').style.display = 'inline-block';
         document.getElementById('loadBtn').style.display = 'inline-block';
+        document.getElementById('versionsBtn').style.display = 'inline-block';
 
         // Auto-load project state
         loadProjectState();
