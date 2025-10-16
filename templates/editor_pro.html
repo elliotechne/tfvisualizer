@@ -1415,32 +1415,55 @@
     function ensureCanvasSize() {
       if (resources.length === 0) return;
 
-      // Find the maximum Y position to determine required height
+      // Find the maximum X and Y positions to determine required dimensions
       let maxY = 0;
+      let maxX = 0;
       resources.forEach(resource => {
         const pos = positions[resource.id];
-        if (pos && pos.y > maxY) {
-          maxY = pos.y;
+        if (pos) {
+          if (pos.y > maxY) maxY = pos.y;
+          if (pos.x > maxX) maxX = pos.x;
         }
       });
 
-      // Add padding for the resource card height (~150px) and bottom margin
+      // Add padding for the resource card dimensions (width: 200px, height: ~150px) and margins
       const requiredHeight = maxY + 350;
+      const requiredWidth = maxX + 300;  // 200px card + 100px margin
       const canvas = document.getElementById('canvas');
       const svg = document.getElementById('connectionsSvg');
       const currentHeight = parseInt(canvas.style.height) || 1200;
+      const currentWidth = parseInt(canvas.style.width) || canvas.offsetWidth;
 
+      // Expand height if needed
       if (requiredHeight > currentHeight) {
         canvas.style.height = requiredHeight + 'px';
         if (svg) {
           svg.style.height = requiredHeight + 'px';
         }
-        console.log(`Canvas expanded to ${requiredHeight}px (grid squares will cover full height)`);
+        console.log(`Canvas height expanded to ${requiredHeight}px`);
       } else if (requiredHeight < 1200 && currentHeight > 1200) {
         // Reset to default if resources fit in smaller space
         canvas.style.height = '1200px';
         if (svg) {
           svg.style.height = '1200px';
+        }
+      }
+
+      // Expand width if needed - ensure minimum width and expand for resources
+      const minWidth = canvas.parentElement.offsetWidth;  // Use parent viewport width as minimum
+      const targetWidth = Math.max(minWidth, requiredWidth);
+
+      if (targetWidth > currentWidth) {
+        canvas.style.width = targetWidth + 'px';
+        if (svg) {
+          svg.style.width = targetWidth + 'px';
+        }
+        console.log(`Canvas width expanded to ${targetWidth}px`);
+      } else if (currentWidth < minWidth) {
+        // Ensure canvas always covers at least the full viewport width
+        canvas.style.width = '100%';
+        if (svg) {
+          svg.style.width = '100%';
         }
       }
     }
@@ -3587,21 +3610,7 @@
 
         console.log('Created resources:', resources);
         console.log('Resource map (name -> ID):', resourceMap);
-
-        // Calculate required canvas height based on resources
-        const totalRows = Math.ceil(currentAIDesign.resources.length / cols);
-        const requiredHeight = startY + (totalRows * spacingY) + 200; // Add 200px padding at bottom
-        const canvas = document.getElementById('canvas');
-        const svg = document.getElementById('connectionsSvg');
-        const currentHeight = parseInt(canvas.style.height) || 1200;
-
-        if (requiredHeight > currentHeight) {
-          canvas.style.height = requiredHeight + 'px';
-          if (svg) {
-            svg.style.height = requiredHeight + 'px';
-          }
-          console.log(`Resized canvas from ${currentHeight}px to ${requiredHeight}px to fit ${currentAIDesign.resources.length} resources (grid squares will expand)`);
-        }
+        console.log('All positions:', positions);
 
         // Add connections if defined
         if (currentAIDesign.connections && currentAIDesign.connections.length > 0) {
