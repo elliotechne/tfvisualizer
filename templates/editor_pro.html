@@ -3327,16 +3327,36 @@
               if (data === '[DONE]') {
                 // Stream complete - try to parse the full JSON
                 try {
-                  currentAIDesign = JSON.parse(fullText);
+                  // Extract JSON from markdown code blocks if present
+                  let jsonText = fullText;
+
+                  // Remove markdown code blocks (```json ... ```)
+                  const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                  if (codeBlockMatch) {
+                    jsonText = codeBlockMatch[1];
+                  }
+
+                  currentAIDesign = JSON.parse(jsonText.trim());
                   contentPre.textContent = JSON.stringify(currentAIDesign, null, 2);
 
+                  console.log('Parsed AI design:', currentAIDesign);
+
                   // Show apply button if design is valid
-                  if (applyBtn && currentAIDesign.resources) {
+                  if (applyBtn && currentAIDesign.resources && currentAIDesign.resources.length > 0) {
                     applyBtn.style.display = 'inline-block';
+                    console.log('Apply button shown - resources found:', currentAIDesign.resources.length);
+                  } else {
+                    console.log('Apply button hidden - no resources found');
                   }
                 } catch (e) {
                   console.error('Failed to parse AI design:', e);
+                  console.log('Raw text:', fullText.substring(0, 500));
                   contentPre.textContent = fullText;
+
+                  // Try to show apply button anyway if we can manually parse
+                  if (applyBtn && fullText.includes('"resources"')) {
+                    applyBtn.style.display = 'inline-block';
+                  }
                 }
                 break;
               }
@@ -3372,21 +3392,49 @@
     }
 
     function applyAIDesignToCanvas() {
+      console.log('Apply to canvas called, currentAIDesign:', currentAIDesign);
+
+      // Try to parse if we have raw text
       if (!currentAIDesign || !currentAIDesign.resources) {
-        alert('No valid design to apply');
+        // Try to parse from the content
+        const contentPre = document.getElementById('aiDesignContent');
+        const rawText = contentPre.textContent;
+
+        try {
+          // Try to extract JSON
+          let jsonText = rawText;
+          const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (codeBlockMatch) {
+            jsonText = codeBlockMatch[1];
+          }
+          currentAIDesign = JSON.parse(jsonText.trim());
+          console.log('Parsed design from content:', currentAIDesign);
+        } catch (e) {
+          console.error('Cannot parse design:', e);
+          alert('No valid design to apply. Please generate a design first.');
+          return;
+        }
+      }
+
+      if (!currentAIDesign.resources || currentAIDesign.resources.length === 0) {
+        alert('Design has no resources to apply');
         return;
       }
 
       try {
         // Clear current canvas
-        if (!confirm('This will clear your current canvas. Continue?')) {
-          return;
+        if (resources.length > 0) {
+          if (!confirm('This will clear your current canvas. Continue?')) {
+            return;
+          }
         }
 
         resources = [];
         connections = [];
         positions = {};
         nextId = 1;
+
+        console.log('Converting resources:', currentAIDesign.resources);
 
         // Convert AI resources to canvas format
         const resourceMap = {}; // Map resource names to IDs
@@ -3399,13 +3447,19 @@
           const id = nextId++;
           const resourceType = aiResource.type;
 
-          // Create resource object
+          console.log(`Processing resource ${index}:`, aiResource);
+
+          // Create resource object - merge configuration into resource
           const resource = {
             id: id,
             type: resourceType,
             name: aiResource.name || `resource-${id}`,
-            ...aiResource.configuration
           };
+
+          // Add configuration properties
+          if (aiResource.configuration) {
+            Object.assign(resource, aiResource.configuration);
+          }
 
           resources.push(resource);
           resourceMap[aiResource.name] = id;
@@ -3417,6 +3471,8 @@
           };
           col++;
         });
+
+        console.log('Created resources:', resources);
 
         // Add connections if defined
         if (currentAIDesign.connections && currentAIDesign.connections.length > 0) {
@@ -3431,6 +3487,7 @@
               });
             }
           });
+          console.log('Created connections:', connections);
         }
 
         // Update UI
@@ -3442,10 +3499,10 @@
         // Close modal
         closeAIDesignerModal();
 
-        alert(`Applied ${resources.length} resources to canvas!`);
+        alert(`✓ Applied ${resources.length} resources to canvas!`);
       } catch (error) {
         console.error('Error applying design:', error);
-        alert('Failed to apply design to canvas');
+        alert('Failed to apply design to canvas: ' + error.message);
       }
     }
 

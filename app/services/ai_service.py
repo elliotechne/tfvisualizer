@@ -142,41 +142,39 @@ Target Cloud Provider: {cloud_provider}
 Available Resource Types:
 {provider_resources}
 
-Generate a complete infrastructure design and provide:
+CRITICAL: Respond ONLY with valid JSON. Do not include any markdown formatting, code blocks, or explanatory text before or after the JSON.
 
-1. **Architecture Overview** - High-level description of the design
-2. **Resource List** - Specific resources to create with configuration details
-3. **Rationale** - Why you chose this architecture
-4. **Estimated Monthly Cost** - Rough cost estimate
-5. **Best Practices** - Security, scalability, and reliability considerations
-
-Format your response as JSON with this structure:
+Format your response as a single JSON object with this exact structure:
 {{
   "overview": "Architecture description",
-  "estimated_cost": "Monthly cost estimate",
+  "estimated_cost": "Monthly cost estimate in USD",
   "resources": [
     {{
       "type": "Resource type (e.g., aws_instance, aws_vpc)",
-      "name": "Descriptive name",
+      "name": "descriptive-resource-name",
       "configuration": {{
-        "property1": "value1",
-        "property2": "value2"
+        "instanceType": "t3.micro",
+        "ami": "ami-12345678"
       }},
       "rationale": "Why this resource is needed"
     }}
   ],
   "connections": [
     {{
-      "from": "resource1_name",
-      "to": "resource2_name",
-      "description": "Why they're connected"
+      "from": "resource1-name",
+      "to": "resource2-name",
+      "description": "How they're connected"
     }}
   ],
-  "best_practices": ["List of important considerations"],
-  "next_steps": ["Recommended follow-up actions"]
+  "best_practices": ["Security consideration 1", "Scalability tip 1"],
+  "next_steps": ["Action 1", "Action 2"]
 }}
 
-Provide a production-ready, well-architected design."""
+Rules:
+- Use descriptive, lowercase-with-hyphens for resource names
+- Include realistic configuration values for each resource
+- Return ONLY the JSON object, nothing else
+- Ensure all JSON is valid and parseable
 
             # Stream the response
             with self.client.messages.stream(
