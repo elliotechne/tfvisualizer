@@ -246,23 +246,23 @@ jobs:
           path: ${{ env.TF_WORKING_DIR }}/terraform-outputs.json
           retention-days: 30
 
-      - name: Get Cluster Kubeconfig
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform output -raw kubeconfig > kubeconfig.yaml || echo "Kubeconfig output not available"
+      # - name: Get Cluster Kubeconfig
+      #   working-directory: ${{ env.TF_WORKING_DIR }}
+      #   run: |
+      #     terraform output -raw kubeconfig > kubeconfig.yaml || echo "Kubeconfig output not available"
 
-      - name: Deploy to Kubernetes
-        if: hashFiles('terraform/kubeconfig.yaml') != ''
-        env:
-          KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
-        run: |
-          # Extract image tag from build job
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
+      # - name: Deploy to Kubernetes
+      #   if: hashFiles('terraform/kubeconfig.yaml') != ''
+      #   env:
+      #     KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
+      #   run: |
+      #     # Extract image tag from build job
+      #     IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
 
-          # Update deployment image
-          kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
-          kubectl set image deployment/tfvisualizer-app tfvisualizer=$IMAGE_TAG -n tfvisualizer || echo "Deployment update skipped"
-          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
+      #     # Update deployment image
+      #     kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
+      #     kubectl set image deployment/tfvisualizer-app tfvisualizer=$IMAGE_TAG -n tfvisualizer || echo "Deployment update skipped"
+      #     kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
 
   terraform-destroy:
     name: Destroy Terraform Resources
