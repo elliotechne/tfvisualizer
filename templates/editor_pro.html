@@ -245,7 +245,7 @@
     }
 
     .canvas-viewport {
-      width: 100%;
+      width: 350px;
       height: 1000px;
       background: #f3f4f6;
       border: 4px solid #a78bfa;
@@ -685,9 +685,6 @@
                 📤 Import .tf
                 <input type="file" accept=".tf,.hcl" onchange="importTerraformFile(event)" style="display: none;" id="tfImportInput">
               </label>
-              <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="testImport()">
-                🧪 Test
-              </button>
               <button class="btn btn-primary" style="font-size: 12px; padding: 4px 12px; display: none;" id="exportBtn" onclick="exportCode()">
                 ⬇ Export
               </button>
