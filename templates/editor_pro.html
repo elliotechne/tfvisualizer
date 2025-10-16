@@ -3449,14 +3449,29 @@
 
           console.log(`Processing resource ${index}:`, aiResource);
 
-          // Create resource object - merge configuration into resource
+          // Find template to get default values
+          const template = resourcePalette.flat().find(t => t.type === resourceType);
+
+          // Create resource object with proper defaults
           const resource = {
             id: id,
             type: resourceType,
             name: aiResource.name || `resource-${id}`,
+            displayName: aiResource.name ? aiResource.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : `Resource ${id}`,
+            icon: template ? template.icon : '📦',
+            color: template ? template.color : '#gray',
+            instanceType: template ? template.defaultInstance : '',
+            volumeSize: template ? (template.defaultSize || 0) : 0,
+            ami: resourceType === 'aws_instance' ? 'ami-04b3c39a8a1c62b76' : '',
+            isData: false,
+            isModule: false,
+            moduleSource: '',
+            moduleVersion: '',
+            moduleVars: null,
+            dataFilter: null
           };
 
-          // Add configuration properties
+          // Merge AI configuration properties - overwrite defaults
           if (aiResource.configuration) {
             Object.assign(resource, aiResource.configuration);
           }
