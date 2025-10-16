@@ -177,6 +177,8 @@ IMPORTANT Rules:
 - ALWAYS include connections array showing how resources relate (VPC to subnets, subnets to instances, etc.)
 - Connection "from" and "to" must EXACTLY match resource "name" fields
 - For network architectures, define clear parent-child relationships (VPC -> Subnet -> Instance)
+- CRITICAL: Every subnet MUST have a connection FROM its VPC (e.g., {{"from": "main-vpc", "to": "public-subnet"}})
+- CRITICAL: Every instance in a subnet MUST have a connection FROM the subnet (e.g., {{"from": "public-subnet", "to": "web-server"}})
 - Return ONLY the JSON object, nothing else
 - Ensure all JSON is valid and parseable"""
 
