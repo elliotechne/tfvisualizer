@@ -174,7 +174,7 @@ Rules:
 - Use descriptive, lowercase-with-hyphens for resource names
 - Include realistic configuration values for each resource
 - Return ONLY the JSON object, nothing else
-- Ensure all JSON is valid and parseable
+- Ensure all JSON is valid and parseable"""
 
             # Stream the response
             with self.client.messages.stream(
