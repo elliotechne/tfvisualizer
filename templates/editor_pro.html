@@ -3450,7 +3450,15 @@
           console.log(`Processing resource ${index}:`, aiResource);
 
           // Find template to get default values
-          const template = resourcePalette.flat().find(t => t.type === resourceType);
+          let template = null;
+          const resourceTemplates = getResourceTemplates();
+          for (const category in resourceTemplates) {
+            const found = resourceTemplates[category].find(t => t.type === resourceType);
+            if (found) {
+              template = found;
+              break;
+            }
+          }
 
           // Create resource object with proper defaults
           const resource = {
