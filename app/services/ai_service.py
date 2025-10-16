@@ -154,7 +154,9 @@ Format your response as a single JSON object with this exact structure:
       "name": "descriptive-resource-name",
       "configuration": {{
         "instanceType": "t3.micro",
-        "ami": "ami-12345678"
+        "ami": "ami-12345678",
+        "vpcId": "main-vpc",
+        "cidrBlock": "10.0.1.0/24"
       }},
       "rationale": "Why this resource is needed"
     }}
@@ -169,6 +171,11 @@ Format your response as a single JSON object with this exact structure:
   "best_practices": ["Security consideration 1", "Scalability tip 1"],
   "next_steps": ["Action 1", "Action 2"]
 }}
+
+Configuration Field Requirements:
+- aws_subnet MUST include: "vpcId" (name of the VPC resource, e.g., "main-vpc"), "cidrBlock" (e.g., "10.0.1.0/24")
+- aws_instance MUST include: "instanceType", "ami", and "subnetId" (name of subnet resource)
+- aws_vpc MUST include: "cidrBlock" (e.g., "10.0.0.0/16")
 
 IMPORTANT Rules:
 - Use descriptive, lowercase-with-hyphens for resource names (e.g., "main-vpc", "web-server", "public-subnet")
