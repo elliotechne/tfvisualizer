@@ -781,6 +781,9 @@
         <button class="btn btn-primary" onclick="generateAIDesign()" id="generateDesignBtn">
           Generate Design
         </button>
+        <button class="btn btn-primary" onclick="applyAIDesignToCanvas()" id="applyDesignBtn" style="display: none; background: #48bb78;">
+          ✓ Apply to Canvas
+        </button>
         <button class="btn" onclick="closeAIDesignerModal()" style="background: #e2e8f0; color: #4a5568;">
           Close
         </button>
@@ -3249,6 +3252,8 @@
       document.getElementById('aiDesignerModal').style.display = 'none';
     }
 
+    let currentAIDesign = null; // Store the parsed AI design
+
     async function generateAIDesign() {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -3265,8 +3270,19 @@
       }
 
       const generateBtn = document.getElementById('generateDesignBtn');
+      const resultDiv = document.getElementById('aiDesignResult');
+      const contentPre = document.getElementById('aiDesignContent');
+
       generateBtn.disabled = true;
       generateBtn.textContent = 'Generating...';
+
+      // Show result area immediately
+      resultDiv.style.display = 'block';
+      contentPre.textContent = '';
+
+      // Hide apply button until we have a valid design
+      const applyBtn = document.getElementById('applyDesignBtn');
+      if (applyBtn) applyBtn.style.display = 'none';
 
       try {
         const response = await fetch('/api/ai/design', {
@@ -3281,27 +3297,70 @@
           })
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(errorData.error || 'Failed to generate design');
+          return;
+        }
 
-        if (response.ok && data.success) {
-          // Display the AI-generated design
-          document.getElementById('aiDesignResult').style.display = 'block';
+        // Stream the response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
 
-          // Try to parse and format the JSON response
-          try {
-            const designData = JSON.parse(data.design);
-            document.getElementById('aiDesignContent').textContent = JSON.stringify(designData, null, 2);
-          } catch (e) {
-            // If not JSON, display as-is
-            document.getElementById('aiDesignContent').textContent = data.design;
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                // Stream complete - try to parse the full JSON
+                try {
+                  currentAIDesign = JSON.parse(fullText);
+                  contentPre.textContent = JSON.stringify(currentAIDesign, null, 2);
+
+                  // Show apply button if design is valid
+                  if (applyBtn && currentAIDesign.resources) {
+                    applyBtn.style.display = 'inline-block';
+                  }
+                } catch (e) {
+                  console.error('Failed to parse AI design:', e);
+                  contentPre.textContent = fullText;
+                }
+                break;
+              }
+
+              try {
+                const chunk = JSON.parse(data);
+
+                if (chunk.error) {
+                  alert('Error: ' + chunk.error);
+                  break;
+                }
+
+                if (chunk.chunk) {
+                  fullText += chunk.chunk;
+                  contentPre.textContent = fullText;
+
+                  // Auto-scroll to bottom
+                  contentPre.scrollTop = contentPre.scrollHeight;
+                }
+              } catch (e) {
+                console.error('Parse error:', e);
+              }
+            }
           }
-
-          // Show token usage if available
-          if (data.usage) {
-            console.log('AI Usage:', data.usage);
-          }
-        } else {
-          alert(data.error || 'Failed to generate design');
         }
       } catch (error) {
         console.error('AI Design error:', error);
@@ -3309,6 +3368,84 @@
       } finally {
         generateBtn.disabled = false;
         generateBtn.textContent = 'Generate Design';
+      }
+    }
+
+    function applyAIDesignToCanvas() {
+      if (!currentAIDesign || !currentAIDesign.resources) {
+        alert('No valid design to apply');
+        return;
+      }
+
+      try {
+        // Clear current canvas
+        if (!confirm('This will clear your current canvas. Continue?')) {
+          return;
+        }
+
+        resources = [];
+        connections = [];
+        positions = {};
+        nextId = 1;
+
+        // Convert AI resources to canvas format
+        const resourceMap = {}; // Map resource names to IDs
+        let xOffset = 100;
+        let yOffset = 100;
+        const spacing = 250;
+        let col = 0;
+
+        currentAIDesign.resources.forEach((aiResource, index) => {
+          const id = nextId++;
+          const resourceType = aiResource.type;
+
+          // Create resource object
+          const resource = {
+            id: id,
+            type: resourceType,
+            name: aiResource.name || `resource-${id}`,
+            ...aiResource.configuration
+          };
+
+          resources.push(resource);
+          resourceMap[aiResource.name] = id;
+
+          // Position resources in a grid
+          positions[id] = {
+            x: xOffset + (col % 3) * spacing,
+            y: yOffset + Math.floor(col / 3) * spacing
+          };
+          col++;
+        });
+
+        // Add connections if defined
+        if (currentAIDesign.connections && currentAIDesign.connections.length > 0) {
+          currentAIDesign.connections.forEach(conn => {
+            const fromId = resourceMap[conn.from];
+            const toId = resourceMap[conn.to];
+
+            if (fromId && toId) {
+              connections.push({
+                from: fromId,
+                to: toId
+              });
+            }
+          });
+        }
+
+        // Update UI
+        updateResourceList();
+        renderCanvas();
+        updateTerraformCode();
+        updateCostEstimate();
+
+        // Close modal
+        closeAIDesignerModal();
+
+        alert(`Applied ${resources.length} resources to canvas!`);
+      } catch (error) {
+        console.error('Error applying design:', error);
+        alert('Failed to apply design to canvas');
       }
     }
 

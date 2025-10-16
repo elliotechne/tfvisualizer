@@ -3,11 +3,12 @@ AI Routes
 Handles AI-powered features (cost optimization, design assistant)
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response, stream_with_context
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.services.ai_service import AIService
 from app.utils.logger import setup_logger
+import json
 
 bp = Blueprint('ai', __name__)
 logger = setup_logger(__name__)
@@ -99,7 +100,7 @@ def optimize_costs():
 @jwt_required()
 def generate_design():
     """
-    Generate infrastructure design from natural language
+    Generate infrastructure design from natural language (streaming)
 
     Request Body:
         {
@@ -108,7 +109,7 @@ def generate_design():
         }
 
     Returns:
-        JSON with generated design
+        Streaming response with generated design chunks
     """
     try:
         user_id = get_jwt_identity()
@@ -143,28 +144,31 @@ def generate_design():
                 'valid_providers': valid_providers
             }), 400
 
-        # Call AI service
-        result = ai_service.generate_design(user_prompt, cloud_provider)
+        logger.info(f"Design generation started for user {user_id}: {user_prompt[:50]}...")
 
-        if not result.get('available'):
-            return jsonify({
-                'error': 'AI service not available',
-                'message': 'Contact support to enable AI features'
-            }), 503
+        # Stream the AI response
+        def generate():
+            try:
+                for chunk in ai_service.generate_design(user_prompt, cloud_provider):
+                    if isinstance(chunk, dict):
+                        # Error or metadata
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                    else:
+                        # Text chunk
+                        yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                logger.error(f"Streaming error: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-        if not result.get('success'):
-            return jsonify({
-                'error': 'Design generation failed',
-                'message': result.get('error', 'Unknown error')
-            }), 500
-
-        logger.info(f"Design generated for user {user_id}: {user_prompt[:50]}...")
-
-        return jsonify({
-            'success': True,
-            'design': result['design'],
-            'usage': result.get('usage', {})
-        }), 200
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no'
+            }
+        )
 
     except Exception as e:
         logger.error(f"Design generation error: {str(e)}")

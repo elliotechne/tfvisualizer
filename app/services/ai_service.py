@@ -113,20 +113,21 @@ Provide practical, actionable recommendations."""
 
     def generate_design(self, user_prompt, cloud_provider='aws'):
         """
-        Generate infrastructure design from natural language description
+        Generate infrastructure design from natural language description (streaming)
 
         Args:
             user_prompt: Natural language description of desired infrastructure
             cloud_provider: Target cloud provider (aws, gcp, azure, digitalocean, kubernetes)
 
         Returns:
-            dict with generated design
+            Generator that yields chunks of the response
         """
         if not self.is_available():
-            return {
+            yield {
                 'available': False,
                 'error': 'AI service not configured'
             }
+            return
 
         try:
             # Provider-specific resource types
@@ -177,7 +178,8 @@ Format your response as JSON with this structure:
 
 Provide a production-ready, well-architected design."""
 
-            message = self.client.messages.create(
+            # Stream the response
+            with self.client.messages.stream(
                 model="claude-sonnet-4-20250514",
                 max_tokens=3072,
                 temperature=0.5,
@@ -187,25 +189,13 @@ Provide a production-ready, well-architected design."""
                         "content": prompt
                     }
                 ]
-            )
-
-            response_text = message.content[0].text
-
-            return {
-                'available': True,
-                'success': True,
-                'design': response_text,
-                'usage': {
-                    'input_tokens': message.usage.input_tokens,
-                    'output_tokens': message.usage.output_tokens
-                }
-            }
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
 
         except Exception as e:
             logger.error(f"Design generation AI error: {str(e)}")
-            return {
-                'available': True,
-                'success': False,
+            yield {
                 'error': str(e)
             }
 
