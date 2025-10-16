@@ -3582,6 +3582,14 @@
         // Update UI - use the correct function name
         updateUI();
 
+        // Scroll canvas viewport to top-left to show resources
+        const viewport = document.querySelector('.canvas-viewport');
+        if (viewport) {
+          viewport.scrollTop = 0;
+          viewport.scrollLeft = 0;
+          console.log('Reset viewport scroll to (0, 0)');
+        }
+
         // Close modal
         closeAIDesignerModal();
 
