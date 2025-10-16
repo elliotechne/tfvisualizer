@@ -11,3 +11,4 @@ Flask-JWT-Extended===4.7.1
 Flask-Migrate===4.1.0
 redis===6.4.0
 python-json-logger===4.0.0
+anthropic==0.40.0

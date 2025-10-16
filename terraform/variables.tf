@@ -260,3 +260,11 @@ variable "google_client_secret" {
   default     = ""
   sensitive   = true
 }
+
+# AI Configuration
+variable "anthropic_api_key" {
+  description = "Anthropic API Key for AI features"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

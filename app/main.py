@@ -81,13 +81,14 @@ def create_app(config_class=Config):
                 return redirect(url_for('pages.login_page'))
 
     # Register blueprints
-    from app.routes import auth, projects, terraform, subscription, webhooks, pages
+    from app.routes import auth, projects, terraform, subscription, webhooks, pages, ai
 
     app.register_blueprint(auth.bp, url_prefix='/api/auth')
     app.register_blueprint(projects.bp, url_prefix='/api/projects')
     app.register_blueprint(terraform.bp, url_prefix='/api/terraform')
     app.register_blueprint(subscription.bp, url_prefix='/api/subscription')
     app.register_blueprint(webhooks.bp, url_prefix='/api/webhooks')
+    app.register_blueprint(ai.bp, url_prefix='/api/ai')
     app.register_blueprint(pages.bp)  # Landing page routes
 
     # Health check endpoint

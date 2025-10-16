@@ -50,6 +50,8 @@ env:
   # OAuth Configuration
   TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
   TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  # AI Configuration
+  TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
   # Backend credentials (Spaces uses AWS-compatible env vars)
   AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}

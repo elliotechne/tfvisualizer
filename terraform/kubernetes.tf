@@ -93,6 +93,7 @@ resource "kubernetes_secret" "app_config" {
     AWS_REGION             = var.region
     GOOGLE_CLIENT_ID       = var.google_client_id
     GOOGLE_CLIENT_SECRET   = var.google_client_secret
+    ANTHROPIC_API_KEY      = var.anthropic_api_key
   }
 
   type = "Opaque"

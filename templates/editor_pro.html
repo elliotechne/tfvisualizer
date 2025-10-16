@@ -625,6 +625,12 @@
               <button class="btn btn-secondary" id="connectBtn" onclick="toggleConnectionMode()">
                 🔗 Connect
               </button>
+              <button class="btn" onclick="showAIDesigner()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                ✨ AI Designer
+              </button>
+              <button class="btn" onclick="analyzeCosts()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                💰 Optimize Costs
+              </button>
               <button class="btn btn-danger" onclick="clearAll()" style="display: none;" id="clearBtn">
                 🗑️ Clear All
               </button>
@@ -733,6 +739,81 @@
         <div id="versionList" style="max-height: 400px; overflow-y: auto;">
           <!-- Version list will be populated here -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Designer Modal -->
+  <div class="modal" id="aiDesignerModal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px;">
+      <h2 style="margin-bottom: 20px; color: #667eea;">✨ AI Design Assistant</h2>
+      <p style="color: #718096; margin-bottom: 20px;">Describe your infrastructure in natural language, and AI will generate a Terraform design for you.</p>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">What do you want to build?</label>
+        <textarea
+          id="aiPromptInput"
+          placeholder="Example: Create a 3-tier web application with load balancer, auto-scaling web servers, and a managed database"
+          style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; resize: vertical;"
+        ></textarea>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Target Cloud Provider</label>
+        <select
+          id="aiProviderSelect"
+          style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;"
+        >
+          <option value="aws">Amazon Web Services (AWS)</option>
+          <option value="gcp">Google Cloud Platform (GCP)</option>
+          <option value="azure">Microsoft Azure</option>
+          <option value="digitalocean">DigitalOcean</option>
+          <option value="kubernetes">Kubernetes</option>
+        </select>
+      </div>
+
+      <div id="aiDesignResult" style="display: none; margin-top: 20px; padding: 16px; background: #f7fafc; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+        <h3 style="margin-bottom: 12px; color: #2d3748;">Generated Design</h3>
+        <pre id="aiDesignContent" style="white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: #4a5568;"></pre>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn btn-primary" onclick="generateAIDesign()" id="generateDesignBtn">
+          Generate Design
+        </button>
+        <button class="btn" onclick="closeAIDesignerModal()" style="background: #e2e8f0; color: #4a5568;">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Optimization Modal -->
+  <div class="modal" id="costOptimizationModal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px;">
+      <h2 style="margin-bottom: 20px; color: #f5576c;">💰 Cost Optimization Analysis</h2>
+      <p style="color: #718096; margin-bottom: 20px;">AI will analyze your current infrastructure and suggest cost-saving opportunities.</p>
+
+      <div id="costAnalysisLoading" style="display: none; text-align: center; padding: 40px;">
+        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #f5576c; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 16px; color: #718096;">Analyzing your infrastructure...</p>
+      </div>
+
+      <div id="costAnalysisResult" style="display: none; margin-top: 20px;">
+        <div style="padding: 16px; background: #f7fafc; border-radius: 8px; margin-bottom: 16px;">
+          <p style="margin-bottom: 8px;"><strong>Current Monthly Cost:</strong> <span id="currentCost" style="color: #e53e3e; font-size: 20px;">$0.00</span></p>
+          <p><strong>Resources Analyzed:</strong> <span id="resourceCount">0</span></p>
+        </div>
+
+        <div style="max-height: 500px; overflow-y: auto; padding: 16px; background: #f7fafc; border-radius: 8px;">
+          <pre id="costOptimizationContent" style="white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: #4a5568;"></pre>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn" onclick="closeCostOptimizationModal()" style="background: #e2e8f0; color: #4a5568;">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -3148,6 +3229,174 @@
 
     function closeVersionModal() {
       document.getElementById('versionModal').classList.remove('active');
+    }
+
+    // AI Designer Functions
+    function showAIDesigner() {
+      const modal = document.getElementById('aiDesignerModal');
+      modal.style.display = 'flex';
+
+      // Set default provider to current canvas provider
+      document.getElementById('aiProviderSelect').value = currentCloudProvider;
+
+      // Clear previous inputs/results
+      document.getElementById('aiPromptInput').value = '';
+      document.getElementById('aiDesignResult').style.display = 'none';
+      document.getElementById('aiDesignContent').textContent = '';
+    }
+
+    function closeAIDesignerModal() {
+      document.getElementById('aiDesignerModal').style.display = 'none';
+    }
+
+    async function generateAIDesign() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to use AI features');
+        return;
+      }
+
+      const prompt = document.getElementById('aiPromptInput').value.trim();
+      const provider = document.getElementById('aiProviderSelect').value;
+
+      if (!prompt) {
+        alert('Please describe what you want to build');
+        return;
+      }
+
+      const generateBtn = document.getElementById('generateDesignBtn');
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating...';
+
+      try {
+        const response = await fetch('/api/ai/design', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            cloud_provider: provider
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Display the AI-generated design
+          document.getElementById('aiDesignResult').style.display = 'block';
+
+          // Try to parse and format the JSON response
+          try {
+            const designData = JSON.parse(data.design);
+            document.getElementById('aiDesignContent').textContent = JSON.stringify(designData, null, 2);
+          } catch (e) {
+            // If not JSON, display as-is
+            document.getElementById('aiDesignContent').textContent = data.design;
+          }
+
+          // Show token usage if available
+          if (data.usage) {
+            console.log('AI Usage:', data.usage);
+          }
+        } else {
+          alert(data.error || 'Failed to generate design');
+        }
+      } catch (error) {
+        console.error('AI Design error:', error);
+        alert('Error generating design. Please try again.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Design';
+      }
+    }
+
+    // Cost Optimization Functions
+    function showCostOptimization() {
+      const modal = document.getElementById('costOptimizationModal');
+      modal.style.display = 'flex';
+
+      // Reset display states
+      document.getElementById('costAnalysisLoading').style.display = 'none';
+      document.getElementById('costAnalysisResult').style.display = 'none';
+      document.getElementById('costOptimizationContent').textContent = '';
+    }
+
+    function closeCostOptimizationModal() {
+      document.getElementById('costOptimizationModal').style.display = 'none';
+    }
+
+    async function analyzeCosts() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to use AI features');
+        return;
+      }
+
+      if (resources.length === 0) {
+        alert('Please add some resources to your infrastructure before analyzing costs');
+        return;
+      }
+
+      // Show the modal
+      showCostOptimization();
+
+      // Show loading state
+      document.getElementById('costAnalysisLoading').style.display = 'block';
+      document.getElementById('costAnalysisResult').style.display = 'none';
+
+      try {
+        // Calculate current cost
+        const currentCost = calculateTotalCost();
+
+        const response = await fetch('/api/ai/cost-optimization', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            resources: resources,
+            current_cost: currentCost
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Hide loading, show results
+          document.getElementById('costAnalysisLoading').style.display = 'none';
+          document.getElementById('costAnalysisResult').style.display = 'block';
+
+          // Update cost display
+          document.getElementById('currentCost').textContent = `$${currentCost.toFixed(2)}`;
+          document.getElementById('resourceCount').textContent = resources.length;
+
+          // Display the analysis
+          try {
+            const analysisData = JSON.parse(data.analysis);
+            document.getElementById('costOptimizationContent').textContent = JSON.stringify(analysisData, null, 2);
+          } catch (e) {
+            // If not JSON, display as-is
+            document.getElementById('costOptimizationContent').textContent = data.analysis;
+          }
+
+          // Show token usage if available
+          if (data.usage) {
+            console.log('AI Usage:', data.usage);
+          }
+        } else {
+          document.getElementById('costAnalysisLoading').style.display = 'none';
+          alert(data.error || 'Failed to analyze costs');
+          closeCostOptimizationModal();
+        }
+      } catch (error) {
+        console.error('Cost optimization error:', error);
+        document.getElementById('costAnalysisLoading').style.display = 'none';
+        alert('Error analyzing costs. Please try again.');
+        closeCostOptimizationModal();
+      }
     }
 
     // Check URL for project ID and show save/load buttons
