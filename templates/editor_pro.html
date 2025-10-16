@@ -1526,17 +1526,27 @@
             }
           });
         } else if (resource.type === 'aws_subnet') {
-          code += `  cidr_block = "10.0.1.0/24"\n`;
-          
-          const incomingConns = connections.filter(c => c.to === resource.id);
-          incomingConns.forEach(conn => {
-            const sourceResource = resources.find(r => r.id === conn.from);
-            if (sourceResource && sourceResource.type === 'aws_vpc') {
-              code += `  vpc_id     = aws_vpc.${sourceResource.name}.id\n`;
-            } else if (sourceResource && sourceResource.isData && sourceResource.type === 'data.aws_vpc') {
-              code += `  vpc_id     = data.aws_vpc.${sourceResource.name}.id\n`;
-            }
-          });
+          code += `  cidr_block = "${resource.cidrBlock || '10.0.1.0/24'}"\n`;
+
+          // Check if vpc_id is manually set
+          if (resource.vpcId) {
+            code += `  vpc_id     = "${resource.vpcId}"\n`;
+          } else {
+            // Otherwise check connections
+            const incomingConns = connections.filter(c => c.to === resource.id);
+            incomingConns.forEach(conn => {
+              const sourceResource = resources.find(r => r.id === conn.from);
+              if (sourceResource && sourceResource.type === 'aws_vpc') {
+                code += `  vpc_id     = aws_vpc.${sourceResource.name}.id\n`;
+              } else if (sourceResource && sourceResource.isData && sourceResource.type === 'data.aws_vpc') {
+                code += `  vpc_id     = data.aws_vpc.${sourceResource.name}.id\n`;
+              }
+            });
+          }
+
+          if (resource.availabilityZone) {
+            code += `  availability_zone = "${resource.availabilityZone}"\n`;
+          }
         } else if (resource.type === 'aws_vpc') {
           code += `  cidr_block = "10.0.0.0/16"\n\n`;
           code += `  tags = {\n    Name = "${resource.displayName}"\n  }\n`;
@@ -2147,6 +2157,24 @@
               <div class="form-hint">Cost: ${(resource.volumeSize * 0.10).toFixed(2)}/mo</div>
             </div>
           `;
+        } else if (resource.type === 'aws_subnet') {
+          formHTML += `
+            <div class="form-group">
+              <label class="form-label">CIDR Block</label>
+              <input type="text" class="form-input" id="editCidrBlock" value="${resource.cidrBlock || '10.0.1.0/24'}" placeholder="e.g., 10.0.1.0/24">
+              <div class="form-hint">IP address range for the subnet</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">VPC ID</label>
+              <input type="text" class="form-input" id="editVpcId" value="${resource.vpcId || ''}" placeholder="e.g., vpc-12345678 or aws_vpc.main.id">
+              <div class="form-hint">VPC ID or reference (use connection for automatic reference)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Availability Zone</label>
+              <input type="text" class="form-input" id="editAvailabilityZone" value="${resource.availabilityZone || ''}" placeholder="e.g., us-east-1a">
+              <div class="form-hint">Optional: specific AZ for the subnet</div>
+            </div>
+          `;
         } else if (resource.type === 'google_compute_instance') {
           formHTML += `
             <div class="form-group">
@@ -2517,6 +2545,13 @@
           resource.instanceType = document.getElementById('editInstanceType').value;
         } else if (resource.type === 'aws_ebs_volume') {
           resource.volumeSize = parseInt(document.getElementById('editVolumeSize').value) || 0;
+        } else if (resource.type === 'aws_subnet') {
+          const cidrBlockInput = document.getElementById('editCidrBlock');
+          const vpcIdInput = document.getElementById('editVpcId');
+          const azInput = document.getElementById('editAvailabilityZone');
+          if (cidrBlockInput) resource.cidrBlock = cidrBlockInput.value;
+          if (vpcIdInput) resource.vpcId = vpcIdInput.value;
+          if (azInput) resource.availabilityZone = azInput.value;
         } else if (resource.type === 'google_compute_instance' || resource.type === 'google_sql_database_instance') {
           resource.instanceType = document.getElementById('editInstanceType').value;
         } else if (resource.type === 'google_compute_disk') {
