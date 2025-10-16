@@ -3485,9 +3485,13 @@
 
         // Convert AI resources to canvas format
         const resourceMap = {}; // Map resource names to IDs
-        let xOffset = 100;
-        let yOffset = 100;
-        const spacing = 250;
+
+        // Better positioning: start at 50,50 and use 300px spacing for better visibility
+        const startX = 50;
+        const startY = 50;
+        const spacingX = 300;
+        const spacingY = 200;
+        const cols = 4; // 4 columns for better layout
         let col = 0;
 
         currentAIDesign.resources.forEach((aiResource, index) => {
@@ -3534,11 +3538,16 @@
           resources.push(resource);
           resourceMap[aiResource.name] = id;
 
-          // Position resources in a grid
+          // Position resources in a grid - ensure all are visible
+          const row = Math.floor(col / cols);
+          const colNum = col % cols;
+
           positions[id] = {
-            x: xOffset + (col % 3) * spacing,
-            y: yOffset + Math.floor(col / 3) * spacing
+            x: startX + (colNum * spacingX),
+            y: startY + (row * spacingY)
           };
+
+          console.log(`Positioned resource ${aiResource.name} at (${positions[id].x}, ${positions[id].y})`);
           col++;
         });
 
