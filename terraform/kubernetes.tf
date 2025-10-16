@@ -142,8 +142,9 @@ resource "kubernetes_deployment" "app" {
 
       spec {
         container {
-          name  = "tfvisualizer"
-          image = "${var.docker_registry}/${var.docker_image}:${var.docker_tag}"
+          name              = "tfvisualizer"
+          image             = "${var.docker_registry}/${var.docker_image}:${var.docker_tag}"
+          image_pull_policy = "Always"
 
           port {
             container_port = 8080
@@ -178,7 +179,7 @@ resource "kubernetes_deployment" "app" {
               path = "/health"
               port = 8080
             }
-            initial_delay_seconds = 90
+            initial_delay_seconds = 30
             period_seconds        = 10
             timeout_seconds       = 3
             failure_threshold     = 3
@@ -189,10 +190,21 @@ resource "kubernetes_deployment" "app" {
               path = "/health"
               port = 8080
             }
-            initial_delay_seconds = 60
+            initial_delay_seconds = 15
             period_seconds        = 5
             timeout_seconds       = 3
-            failure_threshold     = 3
+            failure_threshold     = 2
+          }
+
+          startup_probe {
+            http_get {
+              path = "/health"
+              port = 8080
+            }
+            initial_delay_seconds = 0
+            period_seconds        = 3
+            timeout_seconds       = 2
+            failure_threshold     = 30
           }
         }
 
@@ -206,7 +218,7 @@ resource "kubernetes_deployment" "app" {
       type = "RollingUpdate"
       rolling_update {
         max_surge       = "1"
-        max_unavailable = "0"
+        max_unavailable = "1"
       }
     }
   }
