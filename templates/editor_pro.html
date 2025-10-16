@@ -2028,14 +2028,17 @@
     }
 
     function openEditModal(id) {
-      console.log('Opening edit modal for resource ID:', id);
+      // Convert string ID to number if needed
+      const numId = typeof id === 'string' ? parseInt(id) : id;
+      console.log('Opening edit modal for resource ID:', numId, '(original:', id, ')');
       console.log('Current resources:', resources);
 
-      const resource = resources.find(r => r.id === id);
+      const resource = resources.find(r => r.id === numId);
       console.log('Found resource:', resource);
 
       if (!resource) {
-        console.error('Resource not found for ID:', id);
+        console.error('Resource not found for ID:', numId);
+        console.error('Available resource IDs:', resources.map(r => r.id));
         return;
       }
 
@@ -2474,7 +2477,7 @@
 
       formHTML += `
         <div class="modal-actions">
-          <button class="btn btn-primary" style="flex: 1;" onclick="saveEdit('${id}')">💾 Save Changes</button>
+          <button class="btn btn-primary" style="flex: 1;" onclick="saveEdit(${numId})">💾 Save Changes</button>
           <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
         </div>
       `;
@@ -2484,7 +2487,8 @@
     }
 
     function saveEdit(id) {
-      const resource = resources.find(r => r.id === id);
+      const numId = typeof id === 'string' ? parseInt(id) : id;
+      const resource = resources.find(r => r.id === numId);
       if (!resource) return;
 
       resource.name = document.getElementById('editName').value;
