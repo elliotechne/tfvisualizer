@@ -179,7 +179,7 @@ Rules:
             # Stream the response
             with self.client.messages.stream(
                 model="claude-sonnet-4-20250514",
-                max_tokens=3072,
+                max_tokens=8192,
                 temperature=0.5,
                 messages=[
                     {
