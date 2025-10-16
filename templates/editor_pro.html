@@ -3758,31 +3758,6 @@
       }
     }
 
-    // Test import with sample code
-    function testImport() {
-      console.log('=== Running Test Import ===');
-      const testCode = `resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "HelloWorld"
-  }
-}
-
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-}
-
-resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
-}`;
-
-      console.log('Test code:', testCode);
-      parseTerraformCode(testCode);
-    }
-
     // Start the app
     init();
     initProjectFromURL();
