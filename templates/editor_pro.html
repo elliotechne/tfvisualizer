@@ -1404,11 +1404,37 @@
     }
 
     function updateUI() {
+      ensureCanvasSize();
       renderCanvas();
       updateTotalCost();
       updateResourceCount();
       generateCode();
       updateButtons();
+    }
+
+    function ensureCanvasSize() {
+      if (resources.length === 0) return;
+
+      // Find the maximum Y position to determine required height
+      let maxY = 0;
+      resources.forEach(resource => {
+        const pos = positions[resource.id];
+        if (pos && pos.y > maxY) {
+          maxY = pos.y;
+        }
+      });
+
+      // Add padding for the resource card height (~150px) and bottom margin
+      const requiredHeight = maxY + 350;
+      const canvas = document.getElementById('canvas');
+      const currentHeight = parseInt(canvas.style.height) || 1200;
+
+      if (requiredHeight > currentHeight) {
+        canvas.style.height = requiredHeight + 'px';
+      } else if (requiredHeight < 1200 && currentHeight > 1200) {
+        // Reset to default if resources fit in smaller space
+        canvas.style.height = '1200px';
+      }
     }
 
     function updateTotalCost() {
@@ -3553,6 +3579,17 @@
 
         console.log('Created resources:', resources);
         console.log('Resource map (name -> ID):', resourceMap);
+
+        // Calculate required canvas height based on resources
+        const totalRows = Math.ceil(currentAIDesign.resources.length / cols);
+        const requiredHeight = startY + (totalRows * spacingY) + 200; // Add 200px padding at bottom
+        const canvas = document.getElementById('canvas');
+        const currentHeight = parseInt(canvas.style.height) || 1200;
+
+        if (requiredHeight > currentHeight) {
+          canvas.style.height = requiredHeight + 'px';
+          console.log(`Resized canvas from ${currentHeight}px to ${requiredHeight}px to fit ${currentAIDesign.resources.length} resources`);
+        }
 
         // Add connections if defined
         if (currentAIDesign.connections && currentAIDesign.connections.length > 0) {
