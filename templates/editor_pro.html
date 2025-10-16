@@ -2028,8 +2028,16 @@
     }
 
     function openEditModal(id) {
+      console.log('Opening edit modal for resource ID:', id);
+      console.log('Current resources:', resources);
+
       const resource = resources.find(r => r.id === id);
-      if (!resource) return;
+      console.log('Found resource:', resource);
+
+      if (!resource) {
+        console.error('Resource not found for ID:', id);
+        return;
+      }
 
       const modal = document.getElementById('editModal');
       const form = document.getElementById('editForm');
@@ -2037,7 +2045,7 @@
       let formHTML = `
         <div class="form-group">
           <label class="form-label">Resource Type</label>
-          <input type="text" class="form-input" value="${resource.type}" disabled>
+          <input type="text" class="form-input" value="${resource.type || ''}" disabled>
         </div>
       `;
 
@@ -2046,11 +2054,11 @@
         formHTML += `
           <div class="form-group">
             <label class="form-label">Module Name</label>
-            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., my_vpc_module">
+            <input type="text" class="form-input" id="editName" value="${resource.name || ''}" placeholder="e.g., my_vpc_module">
           </div>
           <div class="form-group">
             <label class="form-label">Display Name</label>
-            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., My VPC Module">
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName || ''}" placeholder="e.g., My VPC Module">
           </div>
           <div class="form-group">
             <label class="form-label">Module Source</label>
@@ -2069,11 +2077,11 @@
         formHTML += `
           <div class="form-group">
             <label class="form-label">Data Source Name</label>
-            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., latest_ami">
+            <input type="text" class="form-input" id="editName" value="${resource.name || ''}" placeholder="e.g., latest_ami">
           </div>
           <div class="form-group">
             <label class="form-label">Display Name</label>
-            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., Latest AMI">
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName || ''}" placeholder="e.g., Latest AMI">
           </div>
           <div class="form-group">
             <label class="form-label">Filter/Query</label>
@@ -2087,11 +2095,11 @@
         formHTML += `
           <div class="form-group">
             <label class="form-label">Resource Name (Terraform ID)</label>
-            <input type="text" class="form-input" id="editName" value="${resource.name}" placeholder="e.g., my_ec2_instance">
+            <input type="text" class="form-input" id="editName" value="${resource.name || ''}" placeholder="e.g., my_ec2_instance">
           </div>
           <div class="form-group">
             <label class="form-label">Display Name</label>
-            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName}" placeholder="e.g., My EC2 Instance">
+            <input type="text" class="form-input" id="editDisplayName" value="${resource.displayName || ''}" placeholder="e.g., My EC2 Instance">
           </div>
         `;
 
