@@ -1427,13 +1427,21 @@
       // Add padding for the resource card height (~150px) and bottom margin
       const requiredHeight = maxY + 350;
       const canvas = document.getElementById('canvas');
+      const svg = document.getElementById('connectionsSvg');
       const currentHeight = parseInt(canvas.style.height) || 1200;
 
       if (requiredHeight > currentHeight) {
         canvas.style.height = requiredHeight + 'px';
+        if (svg) {
+          svg.style.height = requiredHeight + 'px';
+        }
+        console.log(`Canvas expanded to ${requiredHeight}px (grid squares will cover full height)`);
       } else if (requiredHeight < 1200 && currentHeight > 1200) {
         // Reset to default if resources fit in smaller space
         canvas.style.height = '1200px';
+        if (svg) {
+          svg.style.height = '1200px';
+        }
       }
     }
 
@@ -3584,11 +3592,15 @@
         const totalRows = Math.ceil(currentAIDesign.resources.length / cols);
         const requiredHeight = startY + (totalRows * spacingY) + 200; // Add 200px padding at bottom
         const canvas = document.getElementById('canvas');
+        const svg = document.getElementById('connectionsSvg');
         const currentHeight = parseInt(canvas.style.height) || 1200;
 
         if (requiredHeight > currentHeight) {
           canvas.style.height = requiredHeight + 'px';
-          console.log(`Resized canvas from ${currentHeight}px to ${requiredHeight}px to fit ${currentAIDesign.resources.length} resources`);
+          if (svg) {
+            svg.style.height = requiredHeight + 'px';
+          }
+          console.log(`Resized canvas from ${currentHeight}px to ${requiredHeight}px to fit ${currentAIDesign.resources.length} resources (grid squares will expand)`);
         }
 
         // Add connections if defined
