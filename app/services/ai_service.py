@@ -170,9 +170,13 @@ Format your response as a single JSON object with this exact structure:
   "next_steps": ["Action 1", "Action 2"]
 }}
 
-Rules:
-- Use descriptive, lowercase-with-hyphens for resource names
+IMPORTANT Rules:
+- Use descriptive, lowercase-with-hyphens for resource names (e.g., "main-vpc", "web-server", "public-subnet")
+- Resource names must be CONSISTENT between resources array and connections array
 - Include realistic configuration values for each resource
+- ALWAYS include connections array showing how resources relate (VPC to subnets, subnets to instances, etc.)
+- Connection "from" and "to" must EXACTLY match resource "name" fields
+- For network architectures, define clear parent-child relationships (VPC -> Subnet -> Instance)
 - Return ONLY the JSON object, nothing else
 - Ensure all JSON is valid and parseable"""
 

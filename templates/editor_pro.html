@@ -3543,21 +3543,31 @@
         });
 
         console.log('Created resources:', resources);
+        console.log('Resource map (name -> ID):', resourceMap);
 
         // Add connections if defined
         if (currentAIDesign.connections && currentAIDesign.connections.length > 0) {
-          currentAIDesign.connections.forEach(conn => {
+          console.log('AI suggested connections:', currentAIDesign.connections);
+
+          currentAIDesign.connections.forEach((conn, idx) => {
             const fromId = resourceMap[conn.from];
             const toId = resourceMap[conn.to];
+
+            console.log(`Connection ${idx}: ${conn.from} (ID: ${fromId}) -> ${conn.to} (ID: ${toId})`);
 
             if (fromId && toId) {
               connections.push({
                 from: fromId,
                 to: toId
               });
+            } else {
+              console.warn(`Failed to create connection - fromId: ${fromId}, toId: ${toId}`);
+              console.warn(`Available resource names:`, Object.keys(resourceMap));
             }
           });
           console.log('Created connections:', connections);
+        } else {
+          console.log('No connections in AI design');
         }
 
         // Update UI - use the correct function name
