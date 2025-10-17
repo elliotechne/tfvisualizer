@@ -802,7 +802,7 @@
       <div id="costAnalysisResult" style="display: none; margin-top: 20px;">
         <div style="padding: 16px; background: #f7fafc; border-radius: 8px; margin-bottom: 16px;">
           <p style="margin-bottom: 8px;"><strong>Current Monthly Cost:</strong> <span id="currentCost" style="color: #e53e3e; font-size: 20px;">$0.00</span></p>
-          <p><strong>Resources Analyzed:</strong> <span id="resourceCount">0</span></p>
+          <p><strong>Resources Analyzed:</strong> <span id="analyzedResourceCount">0</span></p>
         </div>
 
         <div style="max-height: 500px; overflow-y: auto; padding: 16px; background: #f7fafc; border-radius: 8px;">
@@ -3729,7 +3729,7 @@
 
         // Update cost display
         document.getElementById('currentCost').textContent = `$${currentCost.toFixed(2)}`;
-        document.getElementById('resourceCount').textContent = resources.length;
+        document.getElementById('analyzedResourceCount').textContent = resources.length;
 
         // Clear previous content
         const contentDiv = document.getElementById('costOptimizationContent');
