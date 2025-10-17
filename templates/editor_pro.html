@@ -1422,6 +1422,10 @@
       return 0;
     }
 
+    function calculateTotalCost() {
+      return resources.reduce((sum, r) => sum + calculateCost(r), 0);
+    }
+
     function updateUI() {
       ensureCanvasSize();
       renderCanvas();
@@ -3745,8 +3749,9 @@
         }
       } catch (error) {
         console.error('Cost optimization error:', error);
+        console.error('Error details:', error.message, error.stack);
         document.getElementById('costAnalysisLoading').style.display = 'none';
-        alert('Error analyzing costs. Please try again.');
+        alert(`Error analyzing costs: ${error.message}. Please try again.`);
         closeCostOptimizationModal();
       }
     }
