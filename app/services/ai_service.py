@@ -27,20 +27,21 @@ class AIService:
 
     def analyze_cost_optimization(self, resources, current_cost):
         """
-        Analyze infrastructure design and suggest cost optimizations
+        Analyze infrastructure design and suggest cost optimizations (streaming)
 
         Args:
             resources: List of resources in the design
             current_cost: Current estimated monthly cost
 
         Returns:
-            dict with optimization suggestions
+            Generator that yields chunks of the response
         """
         if not self.is_available():
-            return {
+            yield {
                 'available': False,
                 'error': 'AI service not configured'
             }
+            return
 
         try:
             # Build context about the infrastructure
@@ -53,33 +54,19 @@ Current Infrastructure:
 
 Current Estimated Monthly Cost: ${current_cost}
 
-Please provide:
-1. **Cost Optimization Opportunities** - List specific resources that could be optimized and how
-2. **Estimated Savings** - Approximate monthly savings for each recommendation
-3. **Implementation Difficulty** - Rate each suggestion as Easy/Medium/Hard
-4. **Risk Assessment** - Note any performance or availability trade-offs
+Please provide a detailed analysis with:
+1. **Summary** - Brief overview of optimization potential
+2. **Cost Optimization Opportunities** - List specific resources that could be optimized and how
+3. **Estimated Savings** - Approximate monthly savings for each recommendation
+4. **Implementation Difficulty** - Rate each suggestion as Easy/Medium/Hard
+5. **Risk Assessment** - Note any performance or availability trade-offs
+6. **Quick Wins** - List of easiest optimizations to implement first
 
-Format your response as JSON with this structure:
-{{
-  "summary": "Brief overview of optimization potential",
-  "total_potential_savings": "Estimated total monthly savings",
-  "recommendations": [
-    {{
-      "resource": "Resource name/type",
-      "current": "Current configuration",
-      "optimized": "Recommended configuration",
-      "monthly_savings": "Estimated savings",
-      "difficulty": "Easy/Medium/Hard",
-      "impact": "Description of changes needed",
-      "risks": "Any performance/availability concerns"
-    }}
-  ],
-  "quick_wins": ["List of easiest optimizations to implement first"]
-}}
-
+Use clear markdown formatting with headers, bullet points, and emphasis for readability.
 Provide practical, actionable recommendations."""
 
-            message = self.client.messages.create(
+            # Stream the response
+            with self.client.messages.stream(
                 model="claude-sonnet-4-20250514",
                 max_tokens=2048,
                 temperature=0.3,
@@ -89,25 +76,13 @@ Provide practical, actionable recommendations."""
                         "content": prompt
                     }
                 ]
-            )
-
-            response_text = message.content[0].text
-
-            return {
-                'available': True,
-                'success': True,
-                'analysis': response_text,
-                'usage': {
-                    'input_tokens': message.usage.input_tokens,
-                    'output_tokens': message.usage.output_tokens
-                }
-            }
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
 
         except Exception as e:
             logger.error(f"Cost optimization AI error: {str(e)}")
-            return {
-                'available': True,
-                'success': False,
+            yield {
                 'error': str(e)
             }
 

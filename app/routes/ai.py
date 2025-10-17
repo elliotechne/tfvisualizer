@@ -32,7 +32,7 @@ def check_availability():
 @jwt_required()
 def optimize_costs():
     """
-    Analyze infrastructure and suggest cost optimizations
+    Analyze infrastructure and suggest cost optimizations (streaming)
 
     Request Body:
         {
@@ -41,7 +41,7 @@ def optimize_costs():
         }
 
     Returns:
-        JSON with optimization recommendations
+        Streaming response with optimization recommendations
     """
     try:
         user_id = get_jwt_identity()
@@ -68,28 +68,31 @@ def optimize_costs():
         if not resources:
             return jsonify({'error': 'No resources to analyze'}), 400
 
-        # Call AI service
-        result = ai_service.analyze_cost_optimization(resources, current_cost)
+        logger.info(f"Cost optimization analysis started for user {user_id}")
 
-        if not result.get('available'):
-            return jsonify({
-                'error': 'AI service not available',
-                'message': 'Contact support to enable AI features'
-            }), 503
+        # Stream the AI response
+        def generate():
+            try:
+                for chunk in ai_service.analyze_cost_optimization(resources, current_cost):
+                    if isinstance(chunk, dict):
+                        # Error or metadata
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                    else:
+                        # Text chunk
+                        yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                logger.error(f"Streaming error: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-        if not result.get('success'):
-            return jsonify({
-                'error': 'Analysis failed',
-                'message': result.get('error', 'Unknown error')
-            }), 500
-
-        logger.info(f"Cost optimization analysis completed for user {user_id}")
-
-        return jsonify({
-            'success': True,
-            'analysis': result['analysis'],
-            'usage': result.get('usage', {})
-        }), 200
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no'
+            }
+        )
 
     except Exception as e:
         logger.error(f"Cost optimization error: {str(e)}")

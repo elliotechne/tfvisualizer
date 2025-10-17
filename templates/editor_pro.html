@@ -3718,35 +3718,59 @@
           })
         });
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          // Hide loading, show results
-          document.getElementById('costAnalysisLoading').style.display = 'none';
-          document.getElementById('costAnalysisResult').style.display = 'block';
-
-          // Update cost display
-          document.getElementById('currentCost').textContent = `$${currentCost.toFixed(2)}`;
-          document.getElementById('resourceCount').textContent = resources.length;
-
-          // Display the analysis
-          try {
-            const analysisData = JSON.parse(data.analysis);
-            document.getElementById('costOptimizationContent').textContent = JSON.stringify(analysisData, null, 2);
-          } catch (e) {
-            // If not JSON, display as-is
-            document.getElementById('costOptimizationContent').textContent = data.analysis;
-          }
-
-          // Show token usage if available
-          if (data.usage) {
-            console.log('AI Usage:', data.usage);
-          }
-        } else {
-          document.getElementById('costAnalysisLoading').style.display = 'none';
-          alert(data.error || 'Failed to analyze costs');
-          closeCostOptimizationModal();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to analyze costs');
         }
+
+        // Hide loading, show results
+        document.getElementById('costAnalysisLoading').style.display = 'none';
+        document.getElementById('costAnalysisResult').style.display = 'block';
+
+        // Update cost display
+        document.getElementById('currentCost').textContent = `$${currentCost.toFixed(2)}`;
+        document.getElementById('resourceCount').textContent = resources.length;
+
+        // Clear previous content
+        const contentDiv = document.getElementById('costOptimizationContent');
+        contentDiv.textContent = '';
+
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                console.log('Cost optimization streaming complete');
+                break;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.error) {
+                  throw new Error(parsed.error);
+                } else if (parsed.chunk) {
+                  // Append streaming text
+                  contentDiv.textContent += parsed.chunk;
+                }
+              } catch (e) {
+                console.error('Error parsing stream data:', e);
+              }
+            }
+          }
+        }
+
       } catch (error) {
         console.error('Cost optimization error:', error);
         console.error('Error details:', error.message, error.stack);
