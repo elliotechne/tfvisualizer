@@ -3540,13 +3540,19 @@
         // Convert AI resources to canvas format
         const resourceMap = {}; // Map resource names to IDs
 
-        // Better positioning: start at 20,50 to avoid left offset and use 300px spacing for better visibility
-        const startX = 20;
-        const startY = 50;
-        const spacingX = 300;
-        const spacingY = 200;
-        const cols = 4; // 4 columns for better layout
-        let col = 0;
+        // Get actual canvas dimensions for proper boundary checking
+        const canvas = document.getElementById('canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        const CANVAS_WIDTH = canvasRect.width;
+        const RESOURCE_WIDTH = 200;
+        const MARGIN = 50;
+        const SPACING_X = 220; // Space between resources horizontally
+        const SPACING_Y = 140; // Space between resources vertically
+        
+        let xOffset = MARGIN;
+        let yOffset = MARGIN;
+        let resourcesInRow = 0;
+        const maxResourcesPerRow = Math.floor((CANVAS_WIDTH - MARGIN * 2) / SPACING_X);
 
         currentAIDesign.resources.forEach((aiResource, index) => {
           const id = nextId++;
@@ -3592,17 +3598,20 @@
           resources.push(resource);
           resourceMap[aiResource.name] = id;
 
-          // Position resources in a grid - ensure all are visible
-          const row = Math.floor(col / cols);
-          const colNum = col % cols;
+          // Position resources with proper boundary checking
+          positions[id] = { x: xOffset, y: yOffset };
+          console.log(`Positioned resource ${aiResource.name} at (${xOffset}, ${yOffset})`);
 
-          positions[id] = {
-            x: startX + (colNum * spacingX),
-            y: startY + (row * spacingY)
-          };
-
-          console.log(`Positioned resource ${aiResource.name} at (${positions[id].x}, ${positions[id].y})`);
-          col++;
+          // Layout resources in a grid with proper boundary checking
+          resourcesInRow++;
+          xOffset += SPACING_X;
+          
+          // Move to next row if we've hit the limit or would exceed canvas width
+          if (resourcesInRow >= maxResourcesPerRow || xOffset + RESOURCE_WIDTH > CANVAS_WIDTH - MARGIN) {
+            resourcesInRow = 0;
+            xOffset = MARGIN;
+            yOffset += SPACING_Y;
+          }
         });
 
         console.log('Created resources:', resources);
