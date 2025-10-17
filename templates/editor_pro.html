@@ -1103,7 +1103,17 @@
         const rect = canvas.getBoundingClientRect();
         const newX = (e.clientX - rect.left) / zoom - dragOffset.x;
         const newY = (e.clientY - rect.top) / zoom - dragOffset.y;
-        positions[draggingId] = { x: Math.max(0, newX), y: Math.max(0, newY) };
+        
+        // Ensure resource stays within canvas boundaries
+        const RESOURCE_WIDTH = 200;
+        const RESOURCE_HEIGHT = 120; // Approximate height
+        const maxX = Math.max(0, rect.width / zoom - RESOURCE_WIDTH);
+        const maxY = Math.max(0, rect.height / zoom - RESOURCE_HEIGHT);
+        
+        positions[draggingId] = { 
+          x: Math.max(0, Math.min(maxX, newX)), 
+          y: Math.max(0, Math.min(maxY, newY)) 
+        };
         renderCanvas();
       }
     }
@@ -1162,7 +1172,19 @@
         dataFilter: template.isData ? {} : null
       };
       resources.push(resource);
-      positions[id] = { x, y };
+      
+      // Ensure resource is placed within canvas boundaries
+      const canvas = document.getElementById('canvas');
+      const rect = canvas.getBoundingClientRect();
+      const RESOURCE_WIDTH = 200;
+      const RESOURCE_HEIGHT = 120; // Approximate height
+      const maxX = Math.max(0, rect.width / zoom - RESOURCE_WIDTH);
+      const maxY = Math.max(0, rect.height / zoom - RESOURCE_HEIGHT);
+      
+      positions[id] = { 
+        x: Math.max(0, Math.min(maxX, x)), 
+        y: Math.max(0, Math.min(maxY, y)) 
+      };
       updateUI();
     }
 
