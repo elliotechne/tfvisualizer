@@ -80,6 +80,9 @@ class Config:
     FREE_TIER_PROJECT_LIMIT = 3
     PRO_TIER_PROJECT_LIMIT = -1  # Unlimited
 
+    # Trial Settings
+    TRIAL_PERIOD_DAYS = 14  # 14-day trial period
+
     # Feature Flags
     ENABLE_COLLABORATION = os.getenv('ENABLE_COLLABORATION', 'False').lower() == 'true'
     ENABLE_ANALYTICS = os.getenv('ENABLE_ANALYTICS', 'False').lower() == 'true'

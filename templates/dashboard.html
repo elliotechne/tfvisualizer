@@ -255,14 +255,23 @@
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>Subscription Status:</strong> <span id="subscriptionStatus">{{ user.subscription_status or 'None' }}</span></p>
         <p><strong>Subscription Tier:</strong> <span id="subscriptionTier">{{ user.subscription_tier or 'free' }}</span></p>
+        {% if user.is_on_trial %}
+        <p><strong>Trial Status:</strong> <span style="color: #d97706;">{{ user.days_remaining_in_trial() }} days remaining</span></p>
+        <p><strong>Trial Ends:</strong> {{ user.trial_end_date.strftime('%B %d, %Y at %I:%M %p') if user.trial_end_date else 'N/A' }}</p>
+        {% endif %}
         <p><strong>Member Since:</strong> {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
       </div>
     </div>
 
-    {% if user.subscription_status not in ['active', 'trialing'] %}
+    {% if user.is_on_trial %}
+    <div class="alert alert-info">
+      <strong>🎉 Trial Period Active</strong>
+      <p>You have <strong>{{ user.days_remaining_in_trial() }} days</strong> remaining in your 14-day Pro trial. Your card will be charged automatically when the trial ends on {{ user.trial_end_date.strftime('%B %d, %Y') if user.trial_end_date else 'N/A' }}.</p>
+    </div>
+    {% elif user.subscription_status not in ['active', 'trialing'] %}
     <div class="alert alert-warning">
       <strong>⚠️ No Active Subscription</strong>
-      <p>You need an active subscription to access the Terraform editor. Choose a plan to get started!</p>
+      <p>You need an active subscription to access the Terraform editor. Start your 14-day free trial with credit card today!</p>
     </div>
     {% endif %}
 
@@ -285,18 +294,23 @@
 
       <div class="card">
         <h2>💳 Subscription</h2>
+        {% if user.is_on_trial %}
+        <p>Your 14-day trial ends in {{ user.days_remaining_in_trial() }} days</p>
+        {% else %}
         <p>Manage your subscription and billing information</p>
+        {% endif %}
         {% if user.subscription_tier == 'pro' and user.subscription_status in ['active', 'trialing'] %}
         <button class="btn-primary" onclick="openProEditor()" style="margin-bottom: 8px;">Access Pro Editor</button>
         {% if user.stripe_customer_id %}
         <button class="btn-primary" onclick="manageSubscription()" style="background: #718096;">Manage Billing</button>
         {% endif %}
         {% elif user.subscription_tier == 'free' %}
-        <a href="/pricing" class="btn-primary" id="upgradeBtn">Upgrade to Pro</a>
+        <a href="/pricing" class="btn-primary" id="upgradeBtn">Start 14-Day Free Trial</a>
         {% else %}
         <a href="/pricing" class="btn-primary">View Plans</a>
         {% endif %}
         <p id="stripeStatus" style="margin-top: 12px; font-size: 14px; color: #718096;"></p>
+        <p id="trialStatus" style="margin-top: 8px; font-size: 14px; font-weight: 600;"></p>
       </div>
     </div>
 
@@ -452,6 +466,7 @@
           // Update displayed tier and status
           const tierEl = document.getElementById('subscriptionTier');
           const statusEl = document.getElementById('subscriptionStatus');
+          const trialStatusEl = document.getElementById('trialStatus');
 
           if (tierEl && data.tier) {
             const currentTier = tierEl.textContent;
@@ -470,6 +485,15 @@
 
           if (statusEl && data.status) {
             statusEl.textContent = data.status;
+          }
+
+          // Update trial status display
+          if (trialStatusEl && data.is_on_trial) {
+            const daysRemaining = data.days_remaining_in_trial || 0;
+            trialStatusEl.textContent = `⏰ Trial: ${daysRemaining} days remaining`;
+            trialStatusEl.style.color = daysRemaining <= 3 ? '#e53e3e' : '#d97706';
+          } else if (trialStatusEl) {
+            trialStatusEl.textContent = '';
           }
         }
       } catch (error) {

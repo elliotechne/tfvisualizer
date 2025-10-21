@@ -53,12 +53,13 @@ class StripeService:
             logger.error(f"Stripe customer creation failed: {str(e)}")
             raise
 
-    def create_checkout_session(self, user: User) -> dict:
+    def create_checkout_session(self, user: User, trial_period_days: int = None) -> dict:
         """
-        Create a Stripe Checkout session for Pro subscription
+        Create a Stripe Checkout session for Pro subscription with optional trial
 
         Args:
             user: User model instance
+            trial_period_days: Number of days for trial period (default from config)
 
         Returns:
             dict with session ID and URL
@@ -67,6 +68,18 @@ class StripeService:
             # Ensure user has a Stripe customer ID
             if not user.stripe_customer_id:
                 self.create_customer(user)
+
+            # Get trial period from config if not specified
+            if trial_period_days is None:
+                trial_period_days = current_app.config.get('TRIAL_PERIOD_DAYS', 14)
+
+            # Create subscription data with trial period
+            subscription_data = {
+                'metadata': {
+                    'user_id': str(user.id)
+                },
+                'trial_period_days': trial_period_days
+            }
 
             # Create checkout session
             session = stripe.checkout.Session.create(
@@ -82,14 +95,11 @@ class StripeService:
                 metadata={
                     'user_id': str(user.id)
                 },
-                subscription_data={
-                    'metadata': {
-                        'user_id': str(user.id)
-                    }
-                }
+                subscription_data=subscription_data,
+                payment_method_collection='always'  # Require payment method even for trial
             )
 
-            logger.info(f"Created checkout session {session.id} for user {user.id}")
+            logger.info(f"Created checkout session {session.id} for user {user.id} with {trial_period_days}-day trial")
 
             return {
                 'session_id': session.id,
@@ -240,6 +250,8 @@ class StripeService:
             subscription_obj: Stripe subscription object
         """
         try:
+            from datetime import datetime
+
             subscription = Subscription.query.filter_by(
                 stripe_subscription_id=subscription_obj['id']
             ).first()
@@ -256,12 +268,22 @@ class StripeService:
 
             # Update user status
             user = subscription.user
-            if subscription_obj['status'] == 'active':
+            if subscription_obj['status'] == 'trialing':
+                user.subscription_status = 'trialing'
+                user.is_on_trial = True
+                if subscription_obj.get('trial_end'):
+                    user.trial_end_date = datetime.fromtimestamp(subscription_obj['trial_end'])
+            elif subscription_obj['status'] == 'active':
                 user.subscription_status = 'active'
+                # Trial has ended, subscription is now active
+                if user.is_on_trial:
+                    user.is_on_trial = False
+                    logger.info(f"Trial ended for user {user.id}, now on active subscription")
             elif subscription_obj['status'] in ['canceled', 'unpaid', 'past_due']:
                 user.subscription_status = subscription_obj['status']
                 if subscription_obj['status'] == 'canceled':
                     user.subscription_tier = 'free'
+                    user.is_on_trial = False
 
             db.session.commit()
             logger.info(f"Subscription {subscription_obj['id']} updated")
@@ -372,6 +394,8 @@ class StripeService:
             session_obj: Stripe checkout session object
         """
         try:
+            from datetime import datetime, timedelta
+
             user_id = session_obj.get('metadata', {}).get('user_id')
             if not user_id:
                 logger.error("No user_id in checkout session metadata")
@@ -391,11 +415,22 @@ class StripeService:
                 # Update user to Pro tier immediately
                 user.subscription_tier = 'pro'
 
-                # Set status based on subscription status
+                # Set status and trial info based on subscription status
                 if subscription.status == 'trialing':
                     user.subscription_status = 'trialing'
+                    user.is_on_trial = True
+
+                    # Calculate trial dates from Stripe subscription
+                    if subscription.trial_start and subscription.trial_end:
+                        user.trial_start_date = datetime.fromtimestamp(subscription.trial_start)
+                        user.trial_end_date = datetime.fromtimestamp(subscription.trial_end)
+
+                    logger.info(f"User {user_id} started trial until {user.trial_end_date}")
                 elif subscription.status == 'active':
                     user.subscription_status = 'active'
+                    # Clear trial flags if subscription becomes active (trial ended)
+                    if user.is_on_trial and user.trial_end_date and datetime.utcnow() >= user.trial_end_date:
+                        user.is_on_trial = False
                 else:
                     user.subscription_status = subscription.status
 

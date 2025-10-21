@@ -41,7 +41,12 @@ def check_stripe_available():
 @jwt_required()
 def create_checkout_session():
     """
-    Create a Stripe Checkout session for Pro subscription
+    Create a Stripe Checkout session for Pro subscription with 14-day trial
+
+    Request Body (optional):
+        {
+            "trial_period_days": 14  // Optional, defaults to config value
+        }
 
     Returns:
         JSON with checkout session URL
@@ -65,17 +70,22 @@ def create_checkout_session():
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Check if user already has an active subscription
-        if user.subscription_tier == 'pro' and user.subscription_status == 'active':
-            return jsonify({'error': 'User already has an active Pro subscription'}), 400
+        # Check if user already has an active subscription or trial
+        if user.subscription_tier == 'pro' and (user.subscription_status == 'active' or user.is_on_trial):
+            return jsonify({'error': 'User already has an active Pro subscription or trial'}), 400
+
+        # Get trial period from request or use default
+        data = request.get_json() or {}
+        trial_period_days = data.get('trial_period_days', current_app.config.get('TRIAL_PERIOD_DAYS', 14))
 
         stripe_service = StripeService()
-        session_data = stripe_service.create_checkout_session(user)
+        session_data = stripe_service.create_checkout_session(user, trial_period_days=trial_period_days)
 
         return jsonify({
             'success': True,
             'session_id': session_data['session_id'],
-            'url': session_data['url']
+            'url': session_data['url'],
+            'trial_period_days': trial_period_days
         }), 200
 
     except ValueError as ve:
@@ -130,10 +140,10 @@ def create_portal_session():
 @jwt_required()
 def get_subscription_status():
     """
-    Get current user's subscription status
+    Get current user's subscription status including trial information
 
     Returns:
-        JSON with subscription details
+        JSON with subscription details and trial information
     """
     try:
         user_id = get_jwt_identity()
@@ -147,6 +157,9 @@ def get_subscription_status():
         return jsonify({
             'tier': user.subscription_tier,
             'status': user.subscription_status,
+            'is_on_trial': user.is_on_trial,
+            'trial_end_date': user.trial_end_date.isoformat() if user.trial_end_date else None,
+            'days_remaining_in_trial': user.days_remaining_in_trial(),
             'subscription': subscription.to_dict() if subscription else None
         }), 200
 

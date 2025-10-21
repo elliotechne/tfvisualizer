@@ -27,7 +27,12 @@ class User(db.Model):
     # Stripe fields
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)
     subscription_tier = db.Column(db.String(50), default='free')  # 'free' or 'pro'
-    subscription_status = db.Column(db.String(50), default='inactive')  # 'active', 'inactive', 'canceled', etc.
+    subscription_status = db.Column(db.String(50), default='inactive')  # 'active', 'inactive', 'canceled', 'trialing', etc.
+
+    # Trial fields
+    is_on_trial = db.Column(db.Boolean, default=False)
+    trial_start_date = db.Column(db.DateTime, nullable=True)
+    trial_end_date = db.Column(db.DateTime, nullable=True)
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -46,12 +51,26 @@ class User(db.Model):
         """Verify password against hash"""
         return check_password_hash(self.password_hash, password)
 
+    def is_trial_active(self) -> bool:
+        """Check if user's trial period is still active"""
+        if not self.is_on_trial or not self.trial_end_date:
+            return False
+        return datetime.utcnow() < self.trial_end_date
+
+    def days_remaining_in_trial(self) -> int:
+        """Get number of days remaining in trial"""
+        if not self.is_trial_active():
+            return 0
+        delta = self.trial_end_date - datetime.utcnow()
+        return max(0, delta.days)
+
     def can_create_project(self) -> bool:
         """Check if user can create more projects based on their tier"""
         from app.config.settings import Config
 
-        if self.subscription_tier == 'pro':
-            return True  # Unlimited for Pro tier
+        # Pro tier or active trial gets unlimited projects
+        if self.subscription_tier == 'pro' or self.is_trial_active():
+            return True
 
         # Free tier has a limit
         project_count = self.projects.count()
@@ -66,6 +85,9 @@ class User(db.Model):
             'avatar_url': self.avatar_url,
             'subscription_tier': self.subscription_tier,
             'subscription_status': self.subscription_status,
+            'is_on_trial': self.is_on_trial,
+            'trial_end_date': self.trial_end_date.isoformat() if self.trial_end_date else None,
+            'days_remaining_in_trial': self.days_remaining_in_trial() if self.is_on_trial else 0,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
