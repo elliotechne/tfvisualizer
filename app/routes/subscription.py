@@ -75,7 +75,7 @@ def create_checkout_session():
             return jsonify({'error': 'User already has an active Pro subscription or trial'}), 400
 
         # Get trial period from request or use default
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         trial_period_days = data.get('trial_period_days', current_app.config.get('TRIAL_PERIOD_DAYS', 14))
 
         stripe_service = StripeService()
