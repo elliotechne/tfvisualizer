@@ -130,7 +130,7 @@ variable "app_max_replicas" {
 variable "app_cpu_request" {
   description = "CPU request for application pods"
   type        = string
-  default     = "500m"
+  default     = "250m"
 }
 
 variable "app_cpu_limit" {
@@ -142,13 +142,13 @@ variable "app_cpu_limit" {
 variable "app_memory_request" {
   description = "Memory request for application pods"
   type        = string
-  default     = "1Gi"
+  default     = "512Mi"
 }
 
 variable "app_memory_limit" {
   description = "Memory limit for application pods"
   type        = string
-  default     = "4Gi"
+  default     = "2Gi"
 }
 
 # Docker Registry Configuration
