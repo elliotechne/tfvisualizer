@@ -16,3 +16,11 @@ resource "helm_release" "vpa" {
   create_namespace = true
 }
 
+resource "helm_release" "metrics-server" {
+  name             = "metrics-server"
+  repository       = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart            = "metrics-server"
+  namespace        = "metrics-server"
+  version          = "3.13.0"
+  create_namespace = true
+}
