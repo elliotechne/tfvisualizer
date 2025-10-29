@@ -1,4 +1,4 @@
-resource "kubernetes_namespace" "kube_namespace" {
+resource "kubernetes_namespace" "istio-system" {
   metadata {
     name = "istio-system"
   }
