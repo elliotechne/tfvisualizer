@@ -12,9 +12,221 @@ resource "helm_release" "grafana" {
   version    = "6.29.1"
   wait       = "false"
 
-  values = [
-    file("${path.module}/grafana-values.yaml")
-  ]
+  # RBAC Configuration
+  set {
+    name  = "rbac.create"
+    value = "true"
+  }
+  
+  set {
+    name  = "rbac.pspEnabled"
+    value = "false"
+  }
+
+  # Service Account
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "grafana"
+  }
+
+  # Service Configuration
+  set {
+    name  = "service.type"
+    value = "ClusterIP"
+  }
+
+  set {
+    name  = "service.port"
+    value = "80"
+  }
+
+  set {
+    name  = "service.targetPort"
+    value = "3000"
+  }
+
+  # Ingress Configuration
+  set {
+    name  = "ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "ingress.annotations.kubernetes\\.io/ingress\\.class"
+    value = "nginx"
+  }
+
+  set {
+    name  = "ingress.annotations.cert-manager\\.io/cluster-issuer"
+    value = "letsencrypt-prod"
+  }
+
+  # Persistence Configuration
+  set {
+    name  = "persistence.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "persistence.storageClassName"
+    value = "do-block-storage"
+  }
+
+  set {
+    name  = "persistence.size"
+    value = "10Gi"
+  }
+
+  # Security Context
+  set {
+    name  = "securityContext.runAsUser"
+    value = "472"
+  }
+
+  set {
+    name  = "securityContext.runAsGroup"
+    value = "472"
+  }
+
+  set {
+    name  = "securityContext.fsGroup"
+    value = "472"
+  }
+
+  # Pod Security Context
+  set {
+    name  = "podSecurityContext.runAsNonRoot"
+    value = "true"
+  }
+
+  set {
+    name  = "podSecurityContext.seccompProfile.type"
+    value = "RuntimeDefault"
+  }
+
+  # Resources
+  set {
+    name  = "resources.limits.cpu"
+    value = "1000m"
+  }
+
+  set {
+    name  = "resources.limits.memory"
+    value = "1Gi"
+  }
+
+  set {
+    name  = "resources.requests.cpu"
+    value = "500m"
+  }
+
+  set {
+    name  = "resources.requests.memory"
+    value = "512Mi"
+  }
+
+  # Datasources Configuration
+  set {
+    name  = "datasources.datasources\\.yaml.apiVersion"
+    value = "1"
+  }
+
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].name"
+    value = "Prometheus"
+  }
+
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].type"
+    value = "prometheus"
+  }
+
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].url"
+    value = "http://prometheus-server.monitoring.svc.cluster.local"
+  }
+
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].access"
+    value = "proxy"
+  }
+
+  set {
+    name  = "datasources.datasources\\.yaml.datasources[0].isDefault"
+    value = "true"
+  }
+
+  # Dashboard Configuration
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.apiVersion"
+    value = "1"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].name"
+    value = "default"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].orgId"
+    value = "1"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].folder"
+    value = ""
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].type"
+    value = "file"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].disableDeletion"
+    value = "false"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].editable"
+    value = "true"
+  }
+
+  set {
+    name  = "dashboardProviders.dashboardproviders\\.yaml.providers[0].options.path"
+    value = "/var/lib/grafana/dashboards/default"
+  }
+
+  # Pod Anti-Affinity
+  set {
+    name  = "affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].weight"
+    value = "100"
+  }
+
+  set {
+    name  = "affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchExpressions[0].key"
+    value = "app.kubernetes.io/name"
+  }
+
+  set {
+    name  = "affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchExpressions[0].operator"
+    value = "In"
+  }
+
+  set {
+    name  = "affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchExpressions[0].values[0]"
+    value = "grafana"
+  }
+
+  set {
+    name  = "affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.topologyKey"
+    value = "kubernetes.io/hostname"
+  }
 }
 
 resource "kubernetes_config_map" "volumes-dashboard" {
