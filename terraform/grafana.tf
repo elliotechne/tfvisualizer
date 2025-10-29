@@ -16,6 +16,6 @@ module "grafana" {
   admin_user     = var.grafana_admin_user
   admin_password = var.grafana_admin_password
   # Optionally override chart_version and service_type here
-  chart_version  = "~> 8.0.0"
-  service_type   = "ClusterIP"
+  chart_version = "~> 8.0.0"
+  service_type  = "ClusterIP"
 }
