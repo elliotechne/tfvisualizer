@@ -11,6 +11,10 @@ resource "helm_release" "grafana" {
   namespace  = "monitoring"
   version    = "6.29.1"
   wait       = "false"
+
+  values = [
+    file("${path.module}/grafana-values.yaml")
+  ]
 }
 
 resource "kubernetes_config_map" "volumes-dashboard" {
