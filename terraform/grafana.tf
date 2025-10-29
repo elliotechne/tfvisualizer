@@ -14,6 +14,7 @@ resource "helm_release" "grafana" {
 }
 
 resource "kubernetes_config_map" "volumes-dashboard" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "volumes-dashboard-alerting"
     namespace = "monitoring"
@@ -29,6 +30,7 @@ resource "kubernetes_config_map" "volumes-dashboard" {
 # other dashboard
 
 resource "kubernetes_config_map" "node" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "node"
     namespace = "monitoring"
@@ -40,7 +42,9 @@ resource "kubernetes_config_map" "node" {
     "node.json" = "${file("${path.module}/grafana-dashboard/node.json")}"
   }
 }
+
 resource "kubernetes_config_map" "coredns" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "coredns"
     namespace = "monitoring"
@@ -52,7 +56,9 @@ resource "kubernetes_config_map" "coredns" {
     "coredns.json" = "${file("${path.module}/grafana-dashboard/coredns.json")}"
   }
 }
+
 resource "kubernetes_config_map" "api" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "api"
     namespace = "monitoring"
@@ -64,7 +70,9 @@ resource "kubernetes_config_map" "api" {
     "api.json" = "${file("${path.module}/grafana-dashboard/api.json")}"
   }
 }
+
 resource "kubernetes_config_map" "kubelet" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "kubelet"
     namespace = "monitoring"
@@ -76,7 +84,9 @@ resource "kubernetes_config_map" "kubelet" {
     "kubelet.json" = "${file("${path.module}/grafana-dashboard/kubelet.json")}"
   }
 }
+
 resource "kubernetes_config_map" "proxy" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "proxy"
     namespace = "monitoring"
@@ -88,7 +98,9 @@ resource "kubernetes_config_map" "proxy" {
     "proxy.json" = "${file("${path.module}/grafana-dashboard/proxy.json")}"
   }
 }
+
 resource "kubernetes_config_map" "statefulsets" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "statefulsets"
     namespace = "monitoring"
@@ -100,7 +112,9 @@ resource "kubernetes_config_map" "statefulsets" {
     "statefulsets.json" = "${file("${path.module}/grafana-dashboard/statefulsets.json")}"
   }
 }
+
 resource "kubernetes_config_map" "persistent-volumes" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "persistent-volumes"
     namespace = "monitoring"
@@ -112,7 +126,9 @@ resource "kubernetes_config_map" "persistent-volumes" {
     "persistent-volumes.json" = "${file("${path.module}/grafana-dashboard/persistent-volumes.json")}"
   }
 }
+
 resource "kubernetes_config_map" "prometheous-overview" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "prometheous-overview"
     namespace = "monitoring"
@@ -124,7 +140,9 @@ resource "kubernetes_config_map" "prometheous-overview" {
     "prometheous-overview.json" = "${file("${path.module}/grafana-dashboard/prometheous-overview.json")}"
   }
 }
+
 resource "kubernetes_config_map" "use-method-cluster" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "use-method-cluster"
     namespace = "monitoring"
@@ -136,7 +154,9 @@ resource "kubernetes_config_map" "use-method-cluster" {
     "use-method-cluster.json" = "${file("${path.module}/grafana-dashboard/use-method-cluster.json")}"
   }
 }
+
 resource "kubernetes_config_map" "use-method-node" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "use-method-node"
     namespace = "monitoring"
@@ -148,8 +168,10 @@ resource "kubernetes_config_map" "use-method-node" {
     "use-method-node.json" = "${file("${path.module}/grafana-dashboard/use-method-node.json")}"
   }
 }
+
 #compute resources dashboard
 resource "kubernetes_config_map" "compute-resources-cluster" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "compute-resources-cluster"
     namespace = "monitoring"
@@ -161,7 +183,9 @@ resource "kubernetes_config_map" "compute-resources-cluster" {
     "compute-resources-cluster.json" = "${file("${path.module}/grafana-dashboard/compute-resources-cluster.json")}"
   }
 }
+
 resource "kubernetes_config_map" "compute-resources-node-pods" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "compute-resources-node-pods"
     namespace = "monitoring"
@@ -173,7 +197,9 @@ resource "kubernetes_config_map" "compute-resources-node-pods" {
     "compute-resources-node-pods.json" = "${file("${path.module}/grafana-dashboard/compute-resources-node-pods.json")}"
   }
 }
+
 resource "kubernetes_config_map" "compute-resources-pod" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "compute-resources-pod"
     namespace = "monitoring"
@@ -185,7 +211,9 @@ resource "kubernetes_config_map" "compute-resources-pod" {
     "compute-resources-pod.json" = "${file("${path.module}/grafana-dashboard/compute-resources-pod.json")}"
   }
 }
+
 resource "kubernetes_config_map" "compute-resources-workload" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "compute-resources-workload"
     namespace = "monitoring"
@@ -197,7 +225,9 @@ resource "kubernetes_config_map" "compute-resources-workload" {
     "compute-resources-workload.json" = "${file("${path.module}/grafana-dashboard/compute-resources-workload.json")}"
   }
 }
+
 resource "kubernetes_config_map" "compute-resources-namespace-workloads" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "compute-resources-namespace-workloads"
     namespace = "monitoring"
@@ -209,7 +239,9 @@ resource "kubernetes_config_map" "compute-resources-namespace-workloads" {
     "compute-resources-namespace-workloads.json" = "${file("${path.module}/grafana-dashboard/compute-resources-namespace-workloads.json")}"
   }
 }
+
 resource "kubernetes_config_map" "computer-resources-namespace-pods" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "computer-resources-namespace-pods"
     namespace = "monitoring"
@@ -224,6 +256,7 @@ resource "kubernetes_config_map" "computer-resources-namespace-pods" {
 
 #networking dashboard
 resource "kubernetes_config_map" "networking-namespace-pods" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "networking-namespace-pods"
     namespace = "monitoring"
@@ -235,7 +268,9 @@ resource "kubernetes_config_map" "networking-namespace-pods" {
     "networking-namespace-pods.json" = "${file("${path.module}/grafana-dashboard/networking-namespace-pods.json")}"
   }
 }
+
 resource "kubernetes_config_map" "networking-namespace-workload" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "networking-namespace-workload"
     namespace = "monitoring"
@@ -247,7 +282,9 @@ resource "kubernetes_config_map" "networking-namespace-workload" {
     "networking-namespace-workload.json" = "${file("${path.module}/grafana-dashboard/networking-namespace-workload.json")}"
   }
 }
+
 resource "kubernetes_config_map" "networking-cluster" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "networking-cluster"
     namespace = "monitoring"
@@ -259,7 +296,9 @@ resource "kubernetes_config_map" "networking-cluster" {
     "networking-cluster.json" = "${file("${path.module}/grafana-dashboard/networking-cluster.json")}"
   }
 }
+
 resource "kubernetes_config_map" "networking-pods" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "networking-pods"
     namespace = "monitoring"
@@ -271,7 +310,9 @@ resource "kubernetes_config_map" "networking-pods" {
     "networking-pods.json" = "${file("${path.module}/grafana-dashboard/networking-pods.json")}"
   }
 }
+
 resource "kubernetes_config_map" "networking-workload" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "networking-workload"
     namespace = "monitoring"
@@ -286,6 +327,7 @@ resource "kubernetes_config_map" "networking-workload" {
 
 #Istio dashboard
 resource "kubernetes_config_map" "istio-control-plane" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "istio-control-plane"
     namespace = "monitoring"
@@ -297,7 +339,9 @@ resource "kubernetes_config_map" "istio-control-plane" {
     "istio-control-plane.json" = "${file("${path.module}/grafana-dashboard/istio-control-plane.json")}"
   }
 }
+
 resource "kubernetes_config_map" "istio-mesh" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "istio-mesh"
     namespace = "monitoring"
@@ -309,7 +353,9 @@ resource "kubernetes_config_map" "istio-mesh" {
     "istio-mesh.json" = "${file("${path.module}/grafana-dashboard/istio-mesh.json")}"
   }
 }
+
 resource "kubernetes_config_map" "istio-performance" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "istio-performance"
     namespace = "monitoring"
@@ -321,7 +367,9 @@ resource "kubernetes_config_map" "istio-performance" {
     "istio-performance.json" = "${file("${path.module}/grafana-dashboard/istio-performance.json")}"
   }
 }
+
 resource "kubernetes_config_map" "istio-service" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "istio-service"
     namespace = "monitoring"
@@ -333,7 +381,9 @@ resource "kubernetes_config_map" "istio-service" {
     "istio-service.json" = "${file("${path.module}/grafana-dashboard/istio-service.json")}"
   }
 }
+
 resource "kubernetes_config_map" "istio-workload" {
+  depends_on = [kubernetes_namespace.monitoring]
   metadata {
     name      = "istio-workload"
     namespace = "monitoring"
