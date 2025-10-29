@@ -5,9 +5,9 @@ resource "kubernetes_namespace" "kube_namespace" {
 }
 
 resource "helm_release" "istio-base" {
-  name       = "istio"
+  name       = "base"
   repository = "https://istio-release.storage.googleapis.com/charts"
-  chart      = "istio-base"
+  chart      = "base"
   namespace  = "istio-system"
   version    = "1.27.3"
   wait       = "false"
