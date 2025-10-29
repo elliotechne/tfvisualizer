@@ -17,7 +17,7 @@ resource "helm_release" "grafana" {
     name  = "rbac.create"
     value = "true"
   }
-  
+
   set {
     name  = "rbac.pspEnabled"
     value = "false"
