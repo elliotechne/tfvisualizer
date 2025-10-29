@@ -6,7 +6,7 @@ resource "digitalocean_kubernetes_cluster" "main" {
   vpc_uuid = digitalocean_vpc.main.id
 
   node_pool {
-    name       = "${var.project_name}-worker-pool"
+    name = "${var.project_name}-worker-pool"
     # When `kubernetes_quick_provision` is true create a smaller/faster node pool
     size       = var.kubernetes_quick_provision ? var.kubernetes_quick_node_size : var.kubernetes_node_size
     node_count = var.kubernetes_quick_provision ? var.kubernetes_quick_node_count : var.kubernetes_node_count
