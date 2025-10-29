@@ -1,6 +1,6 @@
 resource "kubernetes_namespace" "kube_namespace" {
   metadata {
-    name     = "monitoring"
+    name = "monitoring"
   }
 }
 
