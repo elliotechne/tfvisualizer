@@ -53,7 +53,7 @@ env:
   # Backend credentials (Spaces uses AWS-compatible env vars)
   AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
-  TF_Var_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+  TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
 jobs:
   build-and-push:
