@@ -260,11 +260,34 @@ variable "google_client_secret" {
   default     = ""
   sensitive   = true
 }
-
-# AI Configuration
-variable "anthropic_api_key" {
-  description = "Anthropic API Key for AI features"
+# Grafana admin credentials (used by the grafana module)
+variable "grafana_admin_user" {
+  description = "Grafana admin username"
   type        = string
-  default     = ""
+  default     = "admin"
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password (sensitive). Provide via terraform.tfvars or environment variables"
+  type        = string
   sensitive   = true
+}
+
+# Quick provisioning option: create a smaller/fewer-node cluster to speed up initial creation
+variable "kubernetes_quick_provision" {
+  description = "When true, create a smaller/faster initial Kubernetes cluster (1 small node). Useful for development or faster provisioning."
+  type        = bool
+  default     = false
+}
+
+variable "kubernetes_quick_node_size" {
+  description = "Node size to use when quick provision is enabled"
+  type        = string
+  default     = "s-1vcpu-2gb"
+}
+
+variable "kubernetes_quick_node_count" {
+  description = "Initial node count when quick provision is enabled"
+  type        = number
+  default     = 1
 }

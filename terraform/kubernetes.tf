@@ -7,11 +7,12 @@ resource "digitalocean_kubernetes_cluster" "main" {
 
   node_pool {
     name       = "${var.project_name}-worker-pool"
-    size       = var.kubernetes_node_size
-    node_count = var.kubernetes_node_count
-    auto_scale = var.kubernetes_autoscale
-    min_nodes  = var.kubernetes_min_nodes
-    max_nodes  = var.kubernetes_max_nodes
+    # When `kubernetes_quick_provision` is true create a smaller/faster node pool
+    size       = var.kubernetes_quick_provision ? var.kubernetes_quick_node_size : var.kubernetes_node_size
+    node_count = var.kubernetes_quick_provision ? var.kubernetes_quick_node_count : var.kubernetes_node_count
+    auto_scale = var.kubernetes_quick_provision ? false : var.kubernetes_autoscale
+    min_nodes  = var.kubernetes_quick_provision ? var.kubernetes_quick_node_count : var.kubernetes_min_nodes
+    max_nodes  = var.kubernetes_quick_provision ? var.kubernetes_quick_node_count : var.kubernetes_max_nodes
     tags       = ["${var.project_name}", "${var.environment}", "worker"]
   }
 
