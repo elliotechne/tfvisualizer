@@ -3,7 +3,7 @@ Page Routes
 Handles rendering of HTML pages (landing page, editor, etc.)
 """
 
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.utils.logger import setup_logger
