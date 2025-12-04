@@ -112,6 +112,17 @@ def pricing():
                           stripe_publishable_key=current_app.config.get('STRIPE_PUBLISHABLE_KEY'))
 
 
+@bp.route('/demo')
+def demo_page():
+    """
+    Public demo preview page
+
+    Returns:
+        Rendered demo preview HTML
+    """
+    return render_template('demo.html')
+
+
 @bp.route('/dashboard')
 @jwt_required(optional=True)
 def dashboard():
