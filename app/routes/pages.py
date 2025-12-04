@@ -120,7 +120,15 @@ def demo_page():
     Returns:
         Rendered demo preview HTML
     """
-    return render_template('demo.html')
+    try:
+        return render_template('demo.html')
+    except Exception as e:
+        # Log and return a friendly JSON error when demo fails to render
+        logger.exception(f"Error rendering demo page: {str(e)}")
+        from flask import current_app
+        if current_app.config.get('DEBUG') or current_app.config.get('FLASK_ENV') == 'development':
+            return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+        return jsonify({'error': 'Internal server error', 'message': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/dashboard')

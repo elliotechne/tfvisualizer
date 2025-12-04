@@ -47,7 +47,16 @@ def register_error_handlers(app):
     @app.errorhandler(500)
     def internal_server_error(error):
         """Handle 500 Internal Server Error"""
-        logger.error(f"Internal server error: {str(error)}")
+        # Log the full exception for diagnostics
+        logger.exception(f"Internal server error: {str(error)}")
+
+        # In development mode, include the error message to aid debugging
+        if app.config.get('DEBUG') or app.config.get('FLASK_ENV') == 'development':
+            return jsonify({
+                'error': 'Internal server error',
+                'message': str(error)
+            }), 500
+
         return jsonify({
             'error': 'Internal server error',
             'message': 'An unexpected error occurred'
@@ -65,6 +74,14 @@ def register_error_handlers(app):
     def handle_exception(error):
         """Handle all uncaught exceptions"""
         logger.exception(f"Unhandled exception: {str(error)}")
+
+        # Surface exception details in development to help debugging
+        if app.config.get('DEBUG') or app.config.get('FLASK_ENV') == 'development':
+            return jsonify({
+                'error': 'Internal server error',
+                'message': str(error)
+            }), 500
+
         return jsonify({
             'error': 'Internal server error',
             'message': 'An unexpected error occurred'
