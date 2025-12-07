@@ -1,41 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Demo - TFVisualizer</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demo Editor — TFVisualizer (Read-only)</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7fafc; color: #2d3748; margin: 0; }
-    .container { max-width: 1000px; margin: 48px auto; padding: 24px; }
-    .hero { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
-    h1 { margin-bottom: 8px; }
-    p { color: #4a5568; }
-    .preview { margin-top: 20px; border-radius: 10px; overflow: hidden; }
-    .preview img { width: 100%; display: block; }
-    .actions { margin-top: 20px; display:flex; gap:12px; }
-    .btn { padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; }
-    .btn-primary { background: #667eea; color: white; }
-    .btn-secondary { background: white; border: 1px solid #cbd5e0; color: #2d3748; }
-    .note { margin-top: 12px; color: #718096; font-size: 14px; }
+    :root{--bg:#f7fafc;--card:#ffffff;--muted:#718096;--accent:#667eea}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    .page{display:flex;flex-direction:column;height:100%;background:var(--bg)}
+    header{background:linear-gradient(90deg,#6b7afb,#7b5bd6);color:white;padding:18px 28px;display:flex;align-items:center;justify-content:space-between}
+    header h1{font-size:18px;margin:0}
+    .wrap{display:flex;flex:1;gap:16px;padding:20px;box-sizing:border-box}
+    .sidebar{width:320px;background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 24px rgba(12,18,31,0.06)}
+    .palette{display:flex;flex-direction:column;gap:10px}
+    .resource{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;border:1px solid #e6e9ef;cursor:pointer}
+    .resource:hover{background:#f1f5ff}
+    .resource .dot{width:36px;height:36px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .canvas-wrap{flex:1;display:flex;flex-direction:column}
+    .controls{display:flex;gap:8px;margin-bottom:12px}
+    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;background:white;border:1px solid #e6e9ef}
+    .btn.primary{background:var(--accent);color:white;border:none}
+    .stage{flex:1;background:linear-gradient(180deg,#ffffff, #f4f7fb);border-radius:12px;padding:12px;position:relative;overflow:auto}
+    .grid{position:absolute;inset:12px;border-radius:8px;background-image:linear-gradient(transparent 24px, rgba(0,0,0,0.02) 25px),linear-gradient(90deg, transparent 24px, rgba(0,0,0,0.02) 25px);background-size:50px 50px}
+    .node{position:absolute;padding:10px 12px;border-radius:8px;background:white;border:1px solid #e6e9ef;box-shadow:0 6px 14px rgba(12,18,31,0.06);cursor:grab;min-width:120px}
+    .node .title{font-weight:700;margin-bottom:6px}
+    .meta{font-size:12px;color:var(--muted)}
+    footer{padding:12px 20px;text-align:center;color:var(--muted);font-size:13px}
+    .hint{font-size:13px;color:var(--muted);margin-top:10px}
+    @media (max-width:900px){.wrap{flex-direction:column}.sidebar{width:100%}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="hero">
-      <h1>Interactive Demo</h1>
-      <p>Try a quick interactive preview of TFVisualizer. This demo is a lightweight, public preview of the editor UI so you can see the features without signing up.</p>
-
-      <div class="preview">
-        <img src="{{ url_for('static', filename='images/demo.svg') }}" alt="Demo preview">
+  <div class="page">
+    <header>
+      <h1>TFVisualizer — Read-only Demo Editor</h1>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/" style="color:white;text-decoration:none;opacity:0.9">Home</a>
       </div>
+    </header>
 
-      <div class="actions">
-        <a href="/editor.html" class="btn btn-primary">Open Full Editor (login required)</a>
-        <a href="/" class="btn btn-secondary">Return to Home</a>
-      </div>
+    <div class="wrap">
+      <aside class="sidebar">
+        <h3 style="margin:0 0 12px 0">Resource Palette</h3>
+        <div class="palette" id="palette">
+          <div class="resource" data-type="aws_instance">
+            <div class="dot">EC2</div>
+            <div>
+              <div style="font-weight:700">EC2 Instance</div>
+              <div class="meta">Compute</div>
+            </div>
+          </div>
+          <div class="resource" data-type="aws_vpc">
+            <div class="dot">VPC</div>
+            <div><div style="font-weight:700">VPC</div><div class="meta">Networking</div></div>
+          </div>
+          <div class="resource" data-type="aws_s3_bucket">
+            <div class="dot">S3</div>
+            <div><div style="font-weight:700">S3 Bucket</div><div class="meta">Storage</div></div>
+          </div>
+          <div class="resource" data-type="aws_rds">
+            <div class="dot">RDS</div>
+            <div><div style="font-weight:700">RDS</div><div class="meta">Database</div></div>
+          </div>
+        </div>
 
-      <p class="note">Note: The full interactive editor requires an account. This demo is a read-only preview.</p>
+        <div class="hint">Click any resource to add it to the canvas. Drag nodes to reposition them. This is a read-only sandbox — changes are not saved.</div>
+      </aside>
+
+      <main class="canvas-wrap">
+        <div class="controls">
+          <button class="btn primary" id="exportBtn">Export JSON</button>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="grid"></div>
+          <!-- nodes will be appended here -->
+        </div>
+      </main>
     </div>
+
+    <footer>Demo — interactive preview. Full editor available after signing up.</footer>
   </div>
+
+  <script>
+    // Simple client-side sandbox editor
+    (function(){
+      const palette = document.getElementById('palette');
+      const stage = document.getElementById('stage');
+      let nodeCounter = 0;
+
+      // Add node at center when clicking palette item
+      palette.addEventListener('click', (ev)=>{
+        const res = ev.target.closest('.resource');
+        if(!res) return;
+        const type = res.dataset.type;
+        addNode(type, 160 + Math.random()*400, 80 + Math.random()*300);
+      });
+
+      function addNode(type, x=100, y=100){
+        nodeCounter++;
+        const id = 'node-' + nodeCounter;
+        const el = document.createElement('div');
+        el.className = 'node';
+        el.id = id;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.innerHTML = `
+          <div class="title">${nodeLabel(type)}</div>
+          <div class="meta">${type}</div>
+        `;
+        makeDraggable(el);
+        stage.appendChild(el);
+      }
+
+      function nodeLabel(type){
+        const map = {
+          'aws_instance':'EC2 Instance',
+          'aws_vpc':'VPC',
+          'aws_s3_bucket':'S3 Bucket',
+          'aws_rds':'RDS'
+        };
+        return map[type] || type;
+      }
+
+      function makeDraggable(el){
+        let isDown=false, startX=0, startY=0, origX=0, origY=0;
+        el.addEventListener('mousedown', onDown);
+        el.addEventListener('touchstart', onDown, {passive:true});
+
+        function onDown(e){
+          isDown = true;
+          el.style.cursor='grabbing';
+          const pt = getPoint(e);
+          startX = pt.x; startY = pt.y;
+          origX = parseFloat(el.style.left) || 0;
+          origY = parseFloat(el.style.top) || 0;
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('touchmove', onMove, {passive:false});
+          window.addEventListener('mouseup', onUp);
+          window.addEventListener('touchend', onUp);
+        }
+
+        function onMove(e){
+          if(!isDown) return;
+          e.preventDefault();
+          const pt = getPoint(e);
+          const dx = pt.x - startX; const dy = pt.y - startY;
+          el.style.left = (origX + dx) + 'px';
+          el.style.top = (origY + dy) + 'px';
+        }
+
+        function onUp(){
+          isDown=false; el.style.cursor='grab';
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('mouseup', onUp);
+          window.removeEventListener('touchend', onUp);
+        }
+
+        function getPoint(e){
+          if(e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+          return {x:e.clientX, y:e.clientY};
+        }
+      }
+
+      // Controls
+      document.getElementById('resetBtn').addEventListener('click', ()=>{
+        const nodes = stage.querySelectorAll('.node');
+        nodes.forEach(n=>n.remove());
+        nodeCounter=0;
+      });
+
+      document.getElementById('exportBtn').addEventListener('click', ()=>{
+        const nodes = Array.from(stage.querySelectorAll('.node')).map(n=>({
+          id:n.id,
+          type:n.querySelector('.meta').textContent,
+          label:n.querySelector('.title').textContent,
+          x:parseFloat(n.style.left)||0,
+          y:parseFloat(n.style.top)||0
+        }));
+        const data = { exported_at: new Date().toISOString(), nodes };
+        const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='tfvisualizer-demo.json'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // seed a couple nodes
+      addNode('aws_vpc', 80, 40);
+      addNode('aws_instance', 320, 140);
+      addNode('aws_s3_bucket', 640, 80);
+    })();
+  </script>
 </body>
 </html>
