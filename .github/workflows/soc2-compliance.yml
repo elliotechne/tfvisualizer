@@ -72,8 +72,8 @@ jobs:
             --external-checks-dir ../../soc2/checkov_policies \
             --framework terraform \
             --output sarif \
-            --output-file-path ../../ \
-            --soft-fail
+            --output-file-path console \
+            --soft-fail > ../../results.sarif
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
