@@ -2,132 +2,52 @@ name: SOC2 Compliance Check
 
 on:
   push:
-    branches: [ main, develop ]
-    paths:
-      - 'terraform/**'
-      - '.github/workflows/soc2-compliance.yml'
+    branches: ['*']
   pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'terraform/**'
-  workflow_dispatch:
+    branches: ['*']
 
 jobs:
-  soc2-compliance:
-    name: SOC2 Terraform Compliance Scan
+  checkov:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
 
     steps:
-      - name: Checkout tfvisualizer code
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: tfvisualizer
-
-      - name: Checkout SOC2 compliance policies
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/soc2
-          path: soc2
-          # If the soc2 repo is private, you'll need to use a PAT:
-          # token: ${{ secrets.SOC2_REPO_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install Checkov
-        run: |
-          pip install checkov
-          checkov --version
+        run: pip install checkov
 
-      - name: Run SOC2 Compliance Scan
-        id: checkov
+      - name: Run Checkov SOC2 compliance scan
         run: |
-          cd tfvisualizer/terraform
-          checkov \
-            --directory . \
-            --external-checks-dir ../../soc2/checkov_policies \
+          checkov -d . \
+            --external-checks-dir ./checkov_policies \
             --framework terraform \
-            --output cli \
-            --output json \
-            --output-file-path ../../checkov-results \
-            --soft-fail
+            -o cli \
+            --compact
         continue-on-error: true
 
-      - name: Upload Checkov results as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: checkov-results
-          path: checkov-results/
-
-      - name: Generate SARIF for GitHub Security
-        if: always()
+      - name: Generate SARIF report
         run: |
-          cd tfvisualizer/terraform
-          checkov \
-            --directory . \
-            --external-checks-dir ../../soc2/checkov_policies \
+          checkov -d . \
+            --external-checks-dir ./checkov_policies \
             --framework terraform \
-            --output sarif \
-            --output-file-path console \
-            --soft-fail > ../../results.sarif
+            -o sarif \
+            --output-file-path . \
+            --compact
+        continue-on-error: true
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: results.sarif
-          category: soc2-compliance
-
-      - name: Comment PR with results
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const resultsPath = 'checkov-results/results_json.json';
-
-            if (!fs.existsSync(resultsPath)) {
-              console.log('No results file found');
-              return;
-            }
-
-            const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
-            const summary = results.summary || {};
-
-            const passed = summary.passed || 0;
-            const failed = summary.failed || 0;
-            const skipped = summary.skipped || 0;
-
-            const body = `## SOC2 Compliance Check Results
-
-            📊 **Summary**
-            - ✅ Passed: ${passed}
-            - ❌ Failed: ${failed}
-            - ⏭️  Skipped: ${skipped}
-
-            ${failed > 0 ? '⚠️ **Action Required**: Some compliance checks failed. Please review the detailed results in the Actions tab.' : '✨ All compliance checks passed!'}
-
-            <details>
-            <summary>View detailed results</summary>
-
-            Check the [Actions tab](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for full compliance report.
-
-            </details>`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
-
-      - name: Fail if critical issues found
-        if: steps.checkov.outcome == 'failure'
-        run: |
-          echo "❌ SOC2 compliance checks failed. Review the results above."
-          echo "ℹ️  To suppress specific checks, see the documentation in the soc2 repo."
-          exit 1
+          sarif_file: results_sarif.sarif
+          category: checkov-soc2
