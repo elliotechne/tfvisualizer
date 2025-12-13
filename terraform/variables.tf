@@ -115,16 +115,34 @@ variable "app_replicas" {
   default     = 2
 }
 
-variable "app_min_replicas" {
-  description = "Minimum replicas for HPA"
-  type        = number
-  default     = 2
+variable "vpa_update_mode" {
+  description = "VPA update mode: Off, Initial, Recreate, or Auto"
+  type        = string
+  default     = "Auto"
 }
 
-variable "app_max_replicas" {
-  description = "Maximum replicas for HPA"
-  type        = number
-  default     = 10
+variable "vpa_min_cpu" {
+  description = "Minimum CPU for VPA"
+  type        = string
+  default     = "100m"
+}
+
+variable "vpa_max_cpu" {
+  description = "Maximum CPU for VPA"
+  type        = string
+  default     = "2000m"
+}
+
+variable "vpa_min_memory" {
+  description = "Minimum memory for VPA"
+  type        = string
+  default     = "128Mi"
+}
+
+variable "vpa_max_memory" {
+  description = "Maximum memory for VPA"
+  type        = string
+  default     = "4Gi"
 }
 
 variable "app_cpu_request" {

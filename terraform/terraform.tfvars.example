@@ -17,9 +17,14 @@ kubernetes_min_nodes  = 2
 kubernetes_max_nodes  = 5
 
 # Application settings
-app_replicas     = 2
-app_min_replicas = 2
-app_max_replicas = 10
+app_replicas = 2
+
+# VPA (Vertical Pod Autoscaler) settings
+vpa_update_mode = "Auto"  # Options: Off, Initial, Recreate, Auto
+vpa_min_cpu     = "100m"
+vpa_max_cpu     = "2000m"
+vpa_min_memory  = "128Mi"
+vpa_max_memory  = "4Gi"
 
 # Database settings (running on Kubernetes)
 postgres_password     = "secure-postgres-password-here"

@@ -60,44 +60,75 @@ resource "kubernetes_namespace" "tfvisualizer" {
   }
 }
 
-# Secret for environment variables
-resource "kubernetes_secret" "app_config" {
-  metadata {
-    name      = "tfvisualizer-config"
-    namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
-  }
+# Secret for environment variables - NOW MANAGED BY SEALED SECRETS
+# The secret "tfvisualizer-config" is created from a SealedSecret that is deployed
+# by the GitHub Actions workflow (.github/workflows/terraform.yml)
+#
+# The SealedSecret is automatically unsealed by the sealed-secrets controller
+# into a regular Kubernetes secret that can be referenced by pods.
+#
+# To update secrets:
+# 1. Update the secret values in GitHub Secrets
+# 2. Push to main branch or manually trigger the workflow
+# 3. The workflow will create a new sealed secret and deploy it
+#
+# For local development or manual secret updates, use:
+# scripts/create-sealed-secret.sh
+#
+# Reference to the secret (managed externally by SealedSecret)
+# Terraform does not create this secret - it's created by the sealed-secrets controller
+# when it unseals the SealedSecret resource deployed by GitHub Actions
 
-  data = {
-    FLASK_ENV              = var.environment
-    PORT                   = "8080"
-    SECRET_KEY             = var.secret_key
-    JWT_SECRET             = var.jwt_secret
-    DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
-    DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
-    DB_PORT                = "5432"
-    DB_NAME                = "tfvisualizer"
-    DB_USER                = "tfuser"
-    DB_PASSWORD            = var.postgres_password
-    REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
-    REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
-    REDIS_PORT             = "6379"
-    REDIS_PASSWORD         = var.redis_password
-    STRIPE_SECRET_KEY      = var.stripe_secret_key
-    STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
-    STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
-    STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
-    STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
-    STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
-    S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
-    AWS_ACCESS_KEY_ID      = var.spaces_access_key
-    AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
-    AWS_REGION             = var.region
-    GOOGLE_CLIENT_ID       = var.google_client_id
-    GOOGLE_CLIENT_SECRET   = var.google_client_secret
-  }
+# Data source to reference the existing secret (optional - for validation)
+# Uncomment if you want Terraform to validate the secret exists
+# data "kubernetes_secret" "app_config" {
+#   metadata {
+#     name      = "tfvisualizer-config"
+#     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+#   }
+#   depends_on = [
+#     helm_release.sealed_secrets
+#   ]
+# }
 
-  type = "Opaque"
-}
+# LEGACY: Direct secret creation (DISABLED - now using SealedSecrets)
+# resource "kubernetes_secret" "app_config" {
+#   metadata {
+#     name      = "tfvisualizer-config"
+#     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+#   }
+#
+#   data = {
+#     FLASK_ENV              = var.environment
+#     PORT                   = "8080"
+#     SECRET_KEY             = var.secret_key
+#     JWT_SECRET             = var.jwt_secret
+#     DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
+#     DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
+#     DB_PORT                = "5432"
+#     DB_NAME                = "tfvisualizer"
+#     DB_USER                = "tfuser"
+#     DB_PASSWORD            = var.postgres_password
+#     REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
+#     REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
+#     REDIS_PORT             = "6379"
+#     REDIS_PASSWORD         = var.redis_password
+#     STRIPE_SECRET_KEY      = var.stripe_secret_key
+#     STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
+#     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
+#     STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
+#     STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
+#     STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
+#     S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
+#     AWS_ACCESS_KEY_ID      = var.spaces_access_key
+#     AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
+#     AWS_REGION             = var.region
+#     GOOGLE_CLIENT_ID       = var.google_client_id
+#     GOOGLE_CLIENT_SECRET   = var.google_client_secret
+#   }
+#
+#   type = "Opaque"
+# }
 
 # ConfigMap for non-sensitive configuration
 resource "kubernetes_config_map" "app_config" {
@@ -153,7 +184,8 @@ resource "kubernetes_deployment" "app" {
 
           env_from {
             secret_ref {
-              name = kubernetes_secret.app_config.metadata[0].name
+              # Reference the secret created by the SealedSecret controller
+              name = "tfvisualizer-config"
             }
           }
 
@@ -247,42 +279,39 @@ resource "kubernetes_service" "app" {
   }
 }
 
-# Horizontal Pod Autoscaler
-resource "kubernetes_horizontal_pod_autoscaler_v2" "app" {
-  metadata {
-    name      = "tfvisualizer-hpa"
-    namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
-  }
-
-  spec {
-    scale_target_ref {
-      api_version = "apps/v1"
-      kind        = "Deployment"
-      name        = kubernetes_deployment.app.metadata[0].name
+# Vertical Pod Autoscaler
+resource "kubernetes_manifest" "app_vpa" {
+  manifest = {
+    apiVersion = "autoscaling.k8s.io/v1"
+    kind       = "VerticalPodAutoscaler"
+    metadata = {
+      name      = "tfvisualizer-vpa"
+      namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     }
-
-    min_replicas = var.app_min_replicas
-    max_replicas = var.app_max_replicas
-
-    metric {
-      type = "Resource"
-      resource {
-        name = "cpu"
-        target {
-          type                = "Utilization"
-          average_utilization = 70
-        }
+    spec = {
+      targetRef = {
+        apiVersion = "apps/v1"
+        kind       = "Deployment"
+        name       = kubernetes_deployment.app.metadata[0].name
       }
-    }
-
-    metric {
-      type = "Resource"
-      resource {
-        name = "memory"
-        target {
-          type                = "Utilization"
-          average_utilization = 80
-        }
+      updatePolicy = {
+        updateMode = var.vpa_update_mode
+      }
+      resourcePolicy = {
+        containerPolicies = [
+          {
+            containerName = "tfvisualizer"
+            minAllowed = {
+              cpu    = var.vpa_min_cpu
+              memory = var.vpa_min_memory
+            }
+            maxAllowed = {
+              cpu    = var.vpa_max_cpu
+              memory = var.vpa_max_memory
+            }
+            controlledResources = ["cpu", "memory"]
+          }
+        ]
       }
     }
   }
