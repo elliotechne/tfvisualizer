@@ -12,12 +12,16 @@ resource "helm_release" "sealed_secrets" {
   repository = "https://bitnami-labs.github.io/sealed-secrets"
   chart      = "sealed-secrets"
   namespace  = kubernetes_namespace.secrets.metadata[0].name
-  version    = "2.15.2" # Pin version for stability
 
   # Wait for the controller to be ready before continuing
   wait          = true
   wait_for_jobs = true
   timeout       = 300
+
+  # Handle existing releases
+  replace       = true
+  force_update  = true
+  recreate_pods = false
 
   set {
     name  = "fullnameOverride"
