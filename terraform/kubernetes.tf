@@ -60,24 +60,18 @@ resource "kubernetes_namespace" "tfvisualizer" {
   }
 }
 
-# Secret for environment variables - NOW MANAGED BY SEALED SECRETS
-# The secret "tfvisualizer-config" is created from a SealedSecret that is deployed
-# by the GitHub Actions workflow (.github/workflows/terraform.yml)
+# Secret for environment variables - REFERENCED AS EXISTING RESOURCE
+# The secret "tfvisualizer-config" already exists in the cluster
+# (created manually or by previous SealedSecrets setup)
 #
-# The SealedSecret is automatically unsealed by the sealed-secrets controller
-# into a regular Kubernetes secret that can be referenced by pods.
+# Terraform uses a data source to reference this existing secret
+# without trying to create or manage it.
 #
-# To update secrets:
-# 1. Update the secret values in GitHub Secrets
-# 2. Push to main branch or manually trigger the workflow
-# 3. The workflow will create a new sealed secret and deploy it
-#
-# For local development or manual secret updates, use:
-# scripts/create-sealed-secret.sh
-#
-# Reference to the secret (managed externally by SealedSecret)
-# Terraform does not create this secret - it's created by the sealed-secrets controller
-# when it unseals the SealedSecret resource deployed by GitHub Actions
+# To update the secret manually:
+# kubectl create secret generic tfvisualizer-config -n tfvisualizer \
+#   --from-literal=PORT=8080 \
+#   --from-literal=SECRET_KEY=your-key \
+#   --dry-run=client -o yaml | kubectl apply -f -
 
 # Data source to reference the existing secret (optional - for validation)
 # Uncomment if you want Terraform to validate the secret exists
