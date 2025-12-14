@@ -91,44 +91,57 @@ resource "kubernetes_namespace" "tfvisualizer" {
 #   ]
 # }
 
-# Direct secret creation (ENABLED - SealedSecrets disabled due to Helm conflict)
-resource "kubernetes_secret" "app_config" {
+# Reference existing secret (created externally by SealedSecrets or manually)
+# Using data source instead of resource to avoid "already exists" error
+data "kubernetes_secret" "app_config" {
   metadata {
     name      = "tfvisualizer-config"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
   }
-
-  data = {
-    FLASK_ENV              = var.environment
-    PORT                   = "8080"
-    SECRET_KEY             = var.secret_key
-    JWT_SECRET             = var.jwt_secret
-    DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
-    DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
-    DB_PORT                = "5432"
-    DB_NAME                = "tfvisualizer"
-    DB_USER                = "tfuser"
-    DB_PASSWORD            = var.postgres_password
-    REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
-    REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
-    REDIS_PORT             = "6379"
-    REDIS_PASSWORD         = var.redis_password
-    STRIPE_SECRET_KEY      = var.stripe_secret_key
-    STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
-    STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
-    STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
-    STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
-    STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
-    S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
-    AWS_ACCESS_KEY_ID      = var.spaces_access_key
-    AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
-    AWS_REGION             = var.region
-    GOOGLE_CLIENT_ID       = var.google_client_id
-    GOOGLE_CLIENT_SECRET   = var.google_client_secret
-  }
-
-  type = "Opaque"
 }
+
+# If the secret doesn't exist yet, you can create it manually or import it:
+#   kubectl create secret generic tfvisualizer-config -n tfvisualizer --from-literal=PORT=8080
+# Or uncomment the resource below and import it:
+#   terraform import kubernetes_secret.app_config tfvisualizer/tfvisualizer-config
+#
+# resource "kubernetes_secret" "app_config" {
+#   metadata {
+#     name      = "tfvisualizer-config"
+#     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+#   }
+#
+#   data = {
+#     FLASK_ENV              = var.environment
+#     PORT                   = "8080"
+#     SECRET_KEY             = var.secret_key
+#     JWT_SECRET             = var.jwt_secret
+#     DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
+#     DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
+#     DB_PORT                = "5432"
+#     DB_NAME                = "tfvisualizer"
+#     DB_USER                = "tfuser"
+#     DB_PASSWORD            = var.postgres_password
+#     REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
+#     REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
+#     REDIS_PORT             = "6379"
+#     REDIS_PASSWORD         = var.redis_password
+#     STRIPE_SECRET_KEY      = var.stripe_secret_key
+#     STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
+#     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
+#     STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
+#     STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
+#     STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
+#     S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
+#     AWS_ACCESS_KEY_ID      = var.spaces_access_key
+#     AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
+#     AWS_REGION             = var.region
+#     GOOGLE_CLIENT_ID       = var.google_client_id
+#     GOOGLE_CLIENT_SECRET   = var.google_client_secret
+#   }
+#
+#   type = "Opaque"
+# }
 
 # ConfigMap for non-sensitive configuration
 resource "kubernetes_config_map" "app_config" {
