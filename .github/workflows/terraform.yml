@@ -250,16 +250,17 @@ jobs:
         run: |
           terraform output -raw kubeconfig > kubeconfig.yaml || echo "Kubeconfig output not available"
 
-      - name: Install kubeseal CLI
-        if: hashFiles('terraform/kubeconfig.yaml') != ''
-        run: |
-          KUBESEAL_VERSION='0.26.0'
-          wget "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
-          tar -xvzf kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz kubeseal
-          sudo install -m 755 kubeseal /usr/local/bin/kubeseal
-          kubeseal --version
+      # DISABLED: kubeseal CLI not needed - using direct secrets
+      # - name: Install kubeseal CLI
+      #   if: hashFiles('terraform/kubeconfig.yaml') != ''
+      #   run: |
+      #     KUBESEAL_VERSION='0.26.0'
+      #     wget "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
+      #     tar -xvzf kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz kubeseal
+      #     sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+      #     kubeseal --version
 
-      - name: Create and Deploy Sealed Secret
+      - name: Create and Deploy Secret (Direct)
         if: hashFiles('terraform/kubeconfig.yaml') != ''
         env:
           KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
@@ -281,10 +282,6 @@ jobs:
           NAMESPACE: tfvisualizer
           FLASK_ENV: production
         run: |
-          # Wait for sealed-secrets controller to be ready
-          echo "Waiting for sealed-secrets controller..."
-          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=sealed-secrets -n secrets --timeout=120s || echo "Controller check skipped"
-
           # Create env file from secrets
           cat > /tmp/app-secrets.env <<EOF
           FLASK_ENV=${FLASK_ENV}
@@ -315,31 +312,19 @@ jobs:
           GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
           EOF
 
-          # Fetch sealed-secrets public certificate
-          echo "Fetching sealed-secrets certificate..."
-          kubeseal --fetch-cert \
-            --controller-name=sealed-secrets \
-            --controller-namespace=secrets > /tmp/sealed-secrets-cert.pem
-
-          # Create and seal the secret
-          echo "Creating sealed secret..."
+          # Create the secret directly (no sealing needed)
+          echo "Creating secret directly..."
           kubectl create secret generic tfvisualizer-config \
             --from-env-file=/tmp/app-secrets.env \
             --namespace=tfvisualizer \
-            --dry-run=client -o yaml | \
-            kubeseal --cert=/tmp/sealed-secrets-cert.pem \
-            --format=yaml > /tmp/sealed-secret.yaml
+            --dry-run=client -o yaml | kubectl apply -f -
 
-          # Apply the sealed secret
-          echo "Applying sealed secret..."
-          kubectl apply -f /tmp/sealed-secret.yaml
-
-          # Verify the secret was created by the controller
+          # Verify the secret was created
           echo "Verifying secret..."
-          kubectl get secret tfvisualizer-config -n tfvisualizer || echo "Secret not yet unsealed"
+          kubectl get secret tfvisualizer-config -n tfvisualizer
 
           # Clean up sensitive files
-          rm -f /tmp/app-secrets.env /tmp/sealed-secrets-cert.pem
+          rm -f /tmp/app-secrets.env
 
       - name: Deploy to Kubernetes
         if: hashFiles('terraform/kubeconfig.yaml') != ''
