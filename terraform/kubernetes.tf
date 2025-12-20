@@ -189,16 +189,31 @@ resource "kubernetes_deployment" "app" {
             name           = "http"
           }
 
-          env_from {
-            secret_ref {
-              # Reference the secret created by the SealedSecret controller
-              name = "tfvisualizer-config"
+          # Mount secrets as files instead of environment variables for better security
+          volume_mount {
+            name       = "secrets"
+            mount_path = "/app/secrets"
+            read_only  = true
+          }
+
+          # Use individual env vars from ConfigMap (not secrets) to satisfy security scanners
+          env {
+            name = "CORS_ORIGINS"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "CORS_ORIGINS"
+              }
             }
           }
 
-          env_from {
-            config_map_ref {
-              name = kubernetes_config_map.app_config.metadata[0].name
+          env {
+            name = "LOG_LEVEL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "LOG_LEVEL"
+              }
             }
           }
 
@@ -244,6 +259,14 @@ resource "kubernetes_deployment" "app" {
             period_seconds        = 3
             timeout_seconds       = 2
             failure_threshold     = 30
+          }
+        }
+
+        # Mount secrets as files
+        volume {
+          name = "secrets"
+          secret {
+            secret_name = "tfvisualizer-config"
           }
         }
 
