@@ -56,7 +56,7 @@ variable "kubernetes_min_nodes" {
 variable "kubernetes_max_nodes" {
   description = "Maximum nodes for autoscaling"
   type        = number
-  default     = 4
+  default     = 3
 }
 
 # PostgreSQL Configuration (running on Kubernetes)
