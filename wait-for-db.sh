@@ -4,23 +4,31 @@
 
 set -e
 
-# Parse database connection from DATABASE_URL or use individual components
-if [ -n "$DATABASE_URL" ]; then
+# Use environment variables directly (DB_HOST, DB_PORT, etc. are set in Kubernetes secret)
+# If not set, try parsing DATABASE_URL, then fall back to defaults
+DB_HOST="${DB_HOST:-${POSTGRES_HOST}}"
+DB_PORT="${DB_PORT:-${POSTGRES_PORT}}"
+DB_USER="${DB_USER:-${POSTGRES_USER}}"
+DB_PASSWORD="${DB_PASSWORD:-${POSTGRES_PASSWORD}}"
+DB_NAME="${DB_NAME:-${POSTGRES_DB}}"
+
+# If still not set and DATABASE_URL is available, parse it
+if [ -z "$DB_HOST" ] && [ -n "$DATABASE_URL" ]; then
   # Extract host and port from DATABASE_URL
   # Format: postgresql://user:password@host:port/database
-  DB_HOST=$(echo $DATABASE_URL | sed -E 's/.*@([^:]+):.*/\1/')
-  DB_PORT=$(echo $DATABASE_URL | sed -E 's/.*:([0-9]+)\/.*/\1/')
-  DB_USER=$(echo $DATABASE_URL | sed -E 's/.*:\/\/([^:]+):.*/\1/')
-  DB_PASSWORD=$(echo $DATABASE_URL | sed -E 's/.*:\/\/[^:]+:([^@]+)@.*/\1/')
-  DB_NAME=$(echo $DATABASE_URL | sed -E 's/.*\/([^?]+).*/\1/')
-else
-  # Use environment variables
-  DB_HOST="${DB_HOST:-${POSTGRES_HOST:-localhost}}"
-  DB_PORT="${DB_PORT:-${POSTGRES_PORT:-5432}}"
-  DB_USER="${DB_USER:-${POSTGRES_USER:-tfuser}}"
-  DB_PASSWORD="${DB_PASSWORD:-${POSTGRES_PASSWORD:-tfpass}}"
-  DB_NAME="${DB_NAME:-${POSTGRES_DB:-tfvisualizer}}"
+  DB_HOST=$(echo $DATABASE_URL | sed -E 's|.*@([^:]+):.*|\1|')
+  DB_PORT=$(echo $DATABASE_URL | sed -E 's|.*:([0-9]+)/.*|\1|')
+  DB_USER=$(echo $DATABASE_URL | sed -E 's|.*://([^:]+):.*|\1|')
+  DB_PASSWORD=$(echo $DATABASE_URL | sed -E 's|.*://[^:]+:([^@]+)@.*|\1|')
+  DB_NAME=$(echo $DATABASE_URL | sed -E 's|.*/([^?]+).*|\1|')
 fi
+
+# Final fallback to defaults
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_USER="${DB_USER:-tfuser}"
+DB_PASSWORD="${DB_PASSWORD:-tfpass}"
+DB_NAME="${DB_NAME:-tfvisualizer}"
 
 echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
 echo "Debug: Testing connection parameters..."
