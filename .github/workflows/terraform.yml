@@ -334,9 +334,14 @@ jobs:
           # Extract image tag from build job
           IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
 
-          # Update deployment image
+          # Update deployment manifest with new image tag
+          sed -i "s|image: ghcr.io/elliotechne/tfvisualizer:.*|image: $IMAGE_TAG|g" k8s/deployment.yaml
+
+          # Apply all Kubernetes manifests (ensures deployment.yaml changes are applied)
           kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
-          kubectl set image deployment/tfvisualizer-app tfvisualizer=$IMAGE_TAG -n tfvisualizer || echo "Deployment update skipped"
+          kubectl apply -f k8s/deployment.yaml -n tfvisualizer || echo "Deployment apply skipped"
+
+          # Wait for rollout to complete
           kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
 
   terraform-destroy:
