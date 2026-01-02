@@ -56,7 +56,7 @@ variable "kubernetes_min_nodes" {
 variable "kubernetes_max_nodes" {
   description = "Maximum nodes for autoscaling"
   type        = number
-  default     = 4
+  default     = 3
 }
 
 # PostgreSQL Configuration (running on Kubernetes)
@@ -308,4 +308,14 @@ variable "kubernetes_quick_node_count" {
   description = "Initial node count when quick provision is enabled"
   type        = number
   default     = 1
+}
+
+variable "slack_url" {
+  description = "Slack URL for alerts"
+  type        = string 
+}
+
+variable "email_alert" {
+  description = "email address for alerts"
+  type        = string 
 }

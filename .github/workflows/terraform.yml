@@ -54,6 +54,8 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
   TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+  TF_VAR_email_alert: ${{ secrets.EMAIL_ALERT }}
+  TF_VAR_slack_url: ${{ secrets.SLACK_URL }}
 
 jobs:
   build-and-push:
