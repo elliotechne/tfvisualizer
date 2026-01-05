@@ -17,7 +17,7 @@ resource "digitalocean_uptime_alert" "alert-example" {
     email = [var.email_alert]
     slack {
       channel = "alerts"
-      url     = var.slack_url 
+      url     = var.slack_url
     }
   }
 }

@@ -312,10 +312,10 @@ variable "kubernetes_quick_node_count" {
 
 variable "slack_url" {
   description = "Slack URL for alerts"
-  type        = string 
+  type        = string
 }
 
 variable "email_alert" {
   description = "email address for alerts"
-  type        = string 
+  type        = string
 }
