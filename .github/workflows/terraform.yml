@@ -365,11 +365,22 @@ jobs:
         env:
           KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
         run: |
-          # Extract image tag from build job
+          # Use SHA-based tag matching the image built in build-and-push job
+          # This ensures we deploy the exact image that was built and pushed
           IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
 
-          # Update deployment manifest with new image tag
+          echo "=========================================="
+          echo "Deploying image: $IMAGE_TAG"
+          echo "Built images from build-and-push job:"
+          echo "${{ needs.build-and-push.outputs.image-tag }}"
+          echo "=========================================="
+
+          # Update deployment manifest with the built image tag
           sed -i "s|image: ghcr.io/elliotechne/tfvisualizer:.*|image: $IMAGE_TAG|g" k8s/deployment.yaml
+
+          # Verify the updated image tag in deployment
+          echo "Updated deployment.yaml image tag:"
+          grep "image: ghcr.io" k8s/deployment.yaml
 
           # Apply all Kubernetes manifests (ensures deployment.yaml changes are applied)
           kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
