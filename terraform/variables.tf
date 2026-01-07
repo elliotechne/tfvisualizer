@@ -183,9 +183,13 @@ variable "docker_image" {
 }
 
 variable "docker_tag" {
-  description = "Docker image tag"
+  description = "Docker image tag (must be a specific version, not 'latest')"
   type        = string
-  default     = "latest"
+
+  validation {
+    condition     = var.docker_tag != "" && var.docker_tag != "latest"
+    error_message = "docker_tag must be a specific version tag, not 'latest' or blank."
+  }
 }
 
 variable "docker_registry_username" {

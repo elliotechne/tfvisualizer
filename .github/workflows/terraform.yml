@@ -58,6 +58,10 @@ env:
   TF_VAR_slack_url: ${{ secrets.SLACK_URL }}
 
 jobs:
+  # Build and push Docker image with SHA-based versioning
+  # The primary tag format is: {branch}-{short-sha} (e.g., "main-abc1234")
+  # This tag is passed to Terraform via TF_VAR_docker_tag to ensure
+  # consistent, version-pinned deployments (no "latest" tag usage)
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
@@ -67,6 +71,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-version: ${{ steps.meta.outputs.version }}
+      docker-tag: ${{ steps.extract-tag.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -114,6 +119,15 @@ jobs:
       - name: Image digest
         run: echo "Image pushed with tags:${{ steps.meta.outputs.tags }}"
 
+      - name: Extract primary tag for Terraform
+        id: extract-tag
+        run: |
+          # Extract the SHA-based tag (branch-sha format) for Terraform deployment
+          # This will be something like "main-abc1234" or "develop-def5678"
+          PRIMARY_TAG="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
+          echo "docker-tag=${PRIMARY_TAG}" >> $GITHUB_OUTPUT
+          echo "Using Docker tag for Terraform: ${PRIMARY_TAG}"
+
   terraform-validate:
     name: Validate Terraform
     runs-on: ubuntu-latest
@@ -143,8 +157,10 @@ jobs:
   terraform-plan:
     name: Plan Terraform Changes
     runs-on: ubuntu-latest
-    needs: terraform-validate
+    needs: [build-and-push, terraform-validate]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
+    env:
+      TF_VAR_docker_tag: ${{ needs.build-and-push.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -159,9 +175,16 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
 
-      # - name: Terraform Init 
+      # - name: Terraform Init
       #   working-directory: ${{ env.TF_WORKING_DIR }}
       #   run: terraform init
+
+      - name: Log Docker Tag for Planning
+        run: |
+          echo "==========================================="
+          echo "Planning with Docker image tag: ${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "==========================================="
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -212,6 +235,8 @@ jobs:
     environment:
       name: production
       url: https://tfvisualizer.com
+    env:
+      TF_VAR_docker_tag: ${{ needs.build-and-push.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -231,6 +256,13 @@ jobs:
         with:
           name: terraform-plan
           path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Log Docker Tag for Deployment
+        run: |
+          echo "==========================================="
+          echo "Deploying with Docker image tag: ${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "==========================================="
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
