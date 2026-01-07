@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
       - name: tfvisualizer
-        image: ghcr.io/elliotechne/tfvisualizer:latest
-        imagePullPolicy: Always
+        image: ghcr.io/elliotechne/tfvisualizer:main-PLACEHOLDER
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
           name: http
