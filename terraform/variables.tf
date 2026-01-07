@@ -305,7 +305,7 @@ variable "kubernetes_quick_provision" {
 variable "kubernetes_quick_node_size" {
   description = "Node size to use when quick provision is enabled"
   type        = string
-  default     = "s-1vcpu-2gb"
+  default     = "s-2vcpu-2gb"
 }
 
 variable "kubernetes_quick_node_count" {
