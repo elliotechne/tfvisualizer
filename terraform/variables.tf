@@ -32,7 +32,7 @@ variable "kubernetes_version" {
 variable "kubernetes_node_size" {
   description = "Node size for Kubernetes worker nodes"
   type        = string
-  default     = "s-2vcpu-4gb"
+  default     = "s-2vcpu-8gb"
 }
 
 variable "kubernetes_node_count" {
@@ -112,7 +112,7 @@ variable "alert_email" {
 variable "app_replicas" {
   description = "Number of application replicas"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "vpa_update_mode" {
@@ -160,13 +160,13 @@ variable "app_cpu_limit" {
 variable "app_memory_request" {
   description = "Memory request for application pods"
   type        = string
-  default     = "512Mi"
+  default     = "256Mi"
 }
 
 variable "app_memory_limit" {
   description = "Memory limit for application pods"
   type        = string
-  default     = "2Gi"
+  default     = "1Gi"
 }
 
 # Docker Registry Configuration

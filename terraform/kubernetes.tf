@@ -17,6 +17,13 @@ resource "digitalocean_kubernetes_cluster" "main" {
   }
 
   tags = ["${var.project_name}", "${var.environment}", "kubernetes"]
+
+  lifecycle {
+    ignore_changes = [
+      node_pool[0].size,
+      node_pool[0].node_count,
+    ]
+  }
 }
 
 # Kubernetes provider configuration
