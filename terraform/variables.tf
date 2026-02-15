@@ -305,13 +305,13 @@ variable "kubernetes_quick_provision" {
 variable "kubernetes_quick_node_size" {
   description = "Node size to use when quick provision is enabled"
   type        = string
-  default     = "s-1vcpu-2gb"
+  default     = "s-1vcpu-4gb"
 }
 
 variable "kubernetes_quick_node_count" {
   description = "Initial node count when quick provision is enabled"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "slack_url" {
