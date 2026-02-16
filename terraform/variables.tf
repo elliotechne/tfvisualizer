@@ -50,7 +50,7 @@ variable "kubernetes_autoscale" {
 variable "kubernetes_min_nodes" {
   description = "Minimum nodes for autoscaling"
   type        = number
-  default     = 1
+  default     = 3
 }
 
 variable "kubernetes_max_nodes" {
