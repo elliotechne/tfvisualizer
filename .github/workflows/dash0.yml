@@ -1,7 +1,7 @@
 on:
   workflow_run:
     workflows:
-      - "Build"
+      - "Terraform CI/CD with Docker Build"
     types: [completed]
 
 jobs:
