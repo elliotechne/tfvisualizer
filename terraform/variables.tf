@@ -32,7 +32,7 @@ variable "kubernetes_version" {
 variable "kubernetes_node_size" {
   description = "Node size for Kubernetes worker nodes"
   type        = string
-  default     = "s-2vcpu-8gb"
+  default     = "s-2vcpu-16gb"
 }
 
 variable "kubernetes_node_count" {
