@@ -196,11 +196,18 @@ resource "kubernetes_deployment" "app" {
             name           = "http"
           }
 
-          # Mount secrets as files instead of environment variables for better security
+          # Mount secrets as files for better security (read by wait-for-db.sh)
           volume_mount {
             name       = "secrets"
             mount_path = "/app/secrets"
             read_only  = true
+          }
+
+          # Inject secrets as environment variables for app and wait-for-db.sh
+          env_from {
+            secret_ref {
+              name = "tfvisualizer-config"
+            }
           }
 
           # Use individual env vars from ConfigMap (not secrets) to satisfy security scanners

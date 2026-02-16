@@ -4,6 +4,20 @@
 
 set -e
 
+# Load secrets from mounted files (Kubernetes secrets mounted as files at /app/secrets/)
+SECRETS_DIR="${SECRETS_DIR:-/app/secrets}"
+if [ -d "$SECRETS_DIR" ]; then
+  for f in "$SECRETS_DIR"/*; do
+    if [ -f "$f" ]; then
+      key=$(basename "$f")
+      # Only export if not already set as an env var
+      if [ -z "${!key}" ]; then
+        export "$key"="$(cat "$f")"
+      fi
+    fi
+  done
+fi
+
 # Use environment variables directly (DB_HOST, DB_PORT, etc. are set in Kubernetes secret)
 # If not set, try parsing DATABASE_URL, then fall back to defaults
 DB_HOST="${DB_HOST:-${POSTGRES_HOST}}"
