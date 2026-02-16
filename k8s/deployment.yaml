@@ -7,7 +7,7 @@ metadata:
     app: tfvisualizer
     environment: production
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: tfvisualizer
@@ -38,10 +38,10 @@ spec:
         resources:
           requests:
             cpu: 250m
-            memory: 512Mi
+            memory: 256Mi
           limits:
             cpu: 1000m
-            memory: 2Gi
+            memory: 1Gi
         startupProbe:
           httpGet:
             path: /health
@@ -105,7 +105,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: tfvisualizer-app
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
   metrics:
   - type: Resource

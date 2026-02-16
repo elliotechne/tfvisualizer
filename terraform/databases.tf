@@ -85,12 +85,12 @@ resource "kubernetes_stateful_set" "postgres" {
 
           resources {
             requests = {
-              cpu    = "500m"
-              memory = "1Gi"
+              cpu    = "250m"
+              memory = "512Mi"
             }
             limits = {
-              cpu    = "2000m"
-              memory = "4Gi"
+              cpu    = "1000m"
+              memory = "2Gi"
             }
           }
 
@@ -255,11 +255,11 @@ resource "kubernetes_stateful_set" "redis" {
 
           resources {
             requests = {
-              cpu    = "250m"
-              memory = "512Mi"
+              cpu    = "100m"
+              memory = "256Mi"
             }
             limits = {
-              cpu    = "1000m"
+              cpu    = "500m"
               memory = "1Gi"
             }
           }
