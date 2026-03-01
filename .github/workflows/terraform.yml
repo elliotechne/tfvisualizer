@@ -211,7 +211,7 @@ jobs:
   terraform-apply:
     name: Apply Terraform Changes
     runs-on: ubuntu-latest
-    needs: [build-and-push, terraform-plan, manual-approval]
+    needs: [build-and-push, terraform-plan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: read
