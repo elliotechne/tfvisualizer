@@ -97,7 +97,8 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-,format=short
+            type=sha,prefix={{branch}}-,format=short,enable=${{ github.event_name != 'pull_request' }}
+            type=sha,prefix=pr-,format=short,enable=${{ github.event_name == 'pull_request' }}
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=TFVisualizer
@@ -122,9 +123,15 @@ jobs:
       - name: Extract primary tag for Terraform
         id: extract-tag
         run: |
-          # Extract the SHA-based tag (branch-sha format) for Terraform deployment
-          # This will be something like "main-abc1234" or "develop-def5678"
-          PRIMARY_TAG="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
+          # Sanitize ref_name: replace any character invalid in a Docker tag with '-',
+          # then strip leading hyphens so we never produce a tag like "-abc1234".
+          REF_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/^-*//')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          if [ -n "$REF_NAME" ]; then
+            PRIMARY_TAG="${REF_NAME}-${SHORT_SHA}"
+          else
+            PRIMARY_TAG="${SHORT_SHA}"
+          fi
           echo "docker-tag=${PRIMARY_TAG}" >> $GITHUB_OUTPUT
           echo "Using Docker tag for Terraform: ${PRIMARY_TAG}"
 
@@ -189,6 +196,10 @@ jobs:
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
+
+      - name: Convert Plan to Text
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform show -no-color tfplan > tfplan.txt
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
