@@ -488,6 +488,25 @@ resource "kubernetes_network_policy" "app" {
     }
 
     egress {
+      # Allow Istio control plane (istiod xDS + cert signing)
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "istio-system"
+          }
+        }
+      }
+      ports {
+        port     = "15012"
+        protocol = "TCP"
+      }
+      ports {
+        port     = "15014"
+        protocol = "TCP"
+      }
+    }
+
+    egress {
       # Allow all other egress (external APIs)
       to {
         ip_block {
