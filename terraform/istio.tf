@@ -39,7 +39,8 @@ resource "helm_release" "istio_ingressgateway" {
       service = {
         type = "LoadBalancer"
         annotations = {
-          "service.beta.kubernetes.io/do-loadbalancer-name" = "${var.project_name}-${var.environment}-istio-lb"
+          "service.beta.kubernetes.io/do-loadbalancer-name"  = "${var.project_name}-${var.environment}-istio-lb"
+          "external-dns.alpha.kubernetes.io/hostname"         = var.domain_name
         }
       }
     })
