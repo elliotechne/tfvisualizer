@@ -31,21 +31,18 @@ resource "helm_release" "istio_ingressgateway" {
   version    = "1.27.3"
   wait       = false
 
-  set {
-    name  = "service.type"
-    value = "LoadBalancer"
-  }
-
-  set {
-    name  = "service.annotations.service\\.beta\\.kubernetes\\.io/do-loadbalancer-name"
-    value = "${var.project_name}-${var.environment}-lb"
-  }
-
-  # Annotate the LoadBalancer service so external-dns creates A records for both domains
-  set {
-    name  = "service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname"
-    value = "${var.domain_name},www.${var.domain_name}"
-  }
+  # Use values instead of set blocks to avoid Helm's dot/comma parsing issues with annotation keys and multi-value strings
+  values = [
+    yamlencode({
+      service = {
+        type = "LoadBalancer"
+        annotations = {
+          "service.beta.kubernetes.io/do-loadbalancer-name"       = "${var.project_name}-${var.environment}-lb"
+          "external-dns.alpha.kubernetes.io/hostname"             = "${var.domain_name},www.${var.domain_name}"
+        }
+      }
+    })
+  ]
 
   depends_on = [helm_release.istiod]
 }
