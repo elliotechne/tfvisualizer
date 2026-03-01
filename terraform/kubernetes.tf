@@ -61,8 +61,9 @@ resource "kubernetes_namespace" "tfvisualizer" {
   metadata {
     name = var.project_name
     labels = {
-      name        = var.project_name
-      environment = var.environment
+      name              = var.project_name
+      environment       = var.environment
+      "istio-injection" = "enabled"
     }
   }
 }
