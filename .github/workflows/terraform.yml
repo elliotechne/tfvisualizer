@@ -396,29 +396,14 @@ jobs:
         env:
           KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
         run: |
-          # Use SHA-based tag matching the image built in build-and-push job
-          # This ensures we deploy the exact image that was built and pushed
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
-
           echo "=========================================="
-          echo "Deploying image: $IMAGE_TAG"
-          echo "Built images from build-and-push job:"
-          echo "${{ needs.build-and-push.outputs.image-tag }}"
+          echo "Verifying rollout of: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
           echo "=========================================="
 
-          # Update deployment manifest with the built image tag
-          sed -i "s|image: ghcr.io/elliotechne/tfvisualizer:.*|image: $IMAGE_TAG|g" k8s/deployment.yaml
-
-          # Verify the updated image tag in deployment
-          echo "Updated deployment.yaml image tag:"
-          grep "image: ghcr.io" k8s/deployment.yaml
-
-          # Apply all Kubernetes manifests (ensures deployment.yaml changes are applied)
-          kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
-          kubectl apply -f k8s/deployment.yaml -n tfvisualizer || echo "Deployment apply skipped"
-
-          # Wait for rollout to complete
-          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
+          # The deployment image was already updated by terraform apply via TF_VAR_docker_tag.
+          # Wait for that rollout to finish rather than re-applying the manifest
+          # (kubectl apply conflicts with Terraform's field ownership of the deployment).
+          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m
 
   terraform-destroy:
     name: Destroy Terraform Resources
