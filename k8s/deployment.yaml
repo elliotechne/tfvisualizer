@@ -74,24 +74,13 @@ kind: Service
 metadata:
   name: tfvisualizer-service
   namespace: tfvisualizer
-  annotations:
-    service.beta.kubernetes.io/do-loadbalancer-name: "tfvisualizer-production-lb"
-    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
-    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
-    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
-    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
-    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: tfvisualizer
   ports:
   - name: http
     port: 80
-    targetPort: 8080
-    protocol: TCP
-  - name: https
-    port: 443
     targetPort: 8080
     protocol: TCP
 ---
