@@ -197,6 +197,10 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
 
+      - name: Convert Plan to Text
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform show -no-color tfplan > tfplan.txt
+
       - name: Upload Plan
         uses: actions/upload-artifact@v4
         with:
