@@ -39,16 +39,19 @@ resource "kubectl_manifest" "tfvisualizer_www_cert" {
 }
 
 # Istio Gateway — terminates TLS for main and www domains
+# Placed in istio-system so it is always visible to istiod regardless of
+# PILOT_SCOPE_GATEWAY_TO_NAMESPACE. Selector uses app: istio-ingressgateway
+# which is set from the Helm release name and is guaranteed on every pod.
 resource "kubectl_manifest" "istio_gateway" {
   yaml_body = <<-YAML
     apiVersion: networking.istio.io/v1beta1
     kind: Gateway
     metadata:
       name: tfvisualizer-gateway
-      namespace: ${kubernetes_namespace.tfvisualizer.metadata[0].name}
+      namespace: istio-system
     spec:
       selector:
-        istio: ingressgateway
+        app: istio-ingressgateway
       servers:
       - port:
           number: 80
@@ -98,14 +101,14 @@ resource "kubectl_manifest" "istio_virtual_service" {
       hosts:
       - ${var.domain_name}
       gateways:
-      - tfvisualizer-gateway
+      - istio-system/tfvisualizer-gateway
       http:
       - match:
         - uri:
             prefix: /
         route:
         - destination:
-            host: ${kubernetes_service.app.metadata[0].name}
+            host: ${kubernetes_service.app.metadata[0].name}.${kubernetes_namespace.tfvisualizer.metadata[0].name}.svc.cluster.local
             port:
               number: 80
         timeout: 60s
@@ -126,7 +129,7 @@ resource "kubectl_manifest" "istio_www_redirect_vs" {
       hosts:
       - www.${var.domain_name}
       gateways:
-      - tfvisualizer-gateway
+      - istio-system/tfvisualizer-gateway
       http:
       - match:
         - uri:
