@@ -269,6 +269,17 @@ variable "letsencrypt_email" {
   sensitive   = true
 }
 
+variable "zerossl_eab_kid" {
+  description = "ZeroSSL EAB Key ID (from ZeroSSL developer dashboard)"
+  type        = string
+}
+
+variable "zerossl_eab_hmac_key" {
+  description = "ZeroSSL EAB HMAC Key (from ZeroSSL developer dashboard)"
+  type        = string
+  sensitive   = true
+}
+
 # OAuth Configuration
 variable "google_client_id" {
   description = "Google OAuth Client ID"

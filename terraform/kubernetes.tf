@@ -418,11 +418,11 @@ resource "kubernetes_network_policy" "app" {
     policy_types = ["Ingress", "Egress"]
 
     ingress {
-      # Allow traffic from nginx-ingress namespace
+      # Allow traffic from istio-system namespace (ingressgateway)
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "istio-system"
           }
         }
       }
