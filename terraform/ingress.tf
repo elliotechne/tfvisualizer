@@ -9,13 +9,13 @@ resource "kubectl_manifest" "tfvisualizer_cert" {
     spec:
       secretName: tfvisualizer-tls
       issuerRef:
-        name: zerossl-prod
+        name: letsencrypt-prod
         kind: ClusterIssuer
       dnsNames:
       - ${var.domain_name}
   YAML
 
-  depends_on = [kubectl_manifest.zerossl_cluster_issuer]
+  depends_on = [kubectl_manifest.letsencrypt_cluster_issuer]
 }
 
 # TLS Certificate for www subdomain (in istio-system so ingressgateway can access it)
@@ -29,13 +29,13 @@ resource "kubectl_manifest" "tfvisualizer_www_cert" {
     spec:
       secretName: tfvisualizer-www-tls
       issuerRef:
-        name: zerossl-prod
+        name: letsencrypt-prod
         kind: ClusterIssuer
       dnsNames:
       - www.${var.domain_name}
   YAML
 
-  depends_on = [kubectl_manifest.zerossl_cluster_issuer]
+  depends_on = [kubectl_manifest.letsencrypt_cluster_issuer]
 }
 
 # Istio Gateway — terminates TLS for main and www domains
