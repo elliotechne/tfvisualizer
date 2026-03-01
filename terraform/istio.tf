@@ -34,6 +34,11 @@ resource "helm_release" "istio_ingressgateway" {
   # Use values instead of set blocks to avoid Helm's dot/comma parsing issues with annotation keys and multi-value strings
   values = [
     yamlencode({
+      # The gateway chart only sets app: <release-name> by default.
+      # Adding istio: ingressgateway here so the Gateway selector matches these pods.
+      labels = {
+        "istio" = "ingressgateway"
+      }
       service = {
         type = "LoadBalancer"
         annotations = {
