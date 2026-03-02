@@ -37,6 +37,11 @@ resource "helm_release" "external_dns" {
   }
 
   set {
+    name  = "log-level"
+    value = "debug"
+  }
+
+  set {
     name  = "env[0].name"
     value = "DO_TOKEN"
   }
