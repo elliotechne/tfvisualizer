@@ -150,25 +150,25 @@ variable "vpa_max_memory" {
 variable "app_cpu_request" {
   description = "CPU request for application pods"
   type        = string
-  default     = "250m"
+  default     = "512m"
 }
 
 variable "app_cpu_limit" {
   description = "CPU limit for application pods"
   type        = string
-  default     = "1000m"
+  default     = "1250m"
 }
 
 variable "app_memory_request" {
   description = "Memory request for application pods"
   type        = string
-  default     = "256Mi"
+  default     = "512Mi"
 }
 
 variable "app_memory_limit" {
   description = "Memory limit for application pods"
   type        = string
-  default     = "1Gi"
+  default     = "1250Mi"
 }
 
 # Docker Registry Configuration
