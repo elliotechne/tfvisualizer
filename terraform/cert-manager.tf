@@ -26,7 +26,21 @@ resource "time_sleep" "wait_for_cert_manager" {
   create_duration = "60s"
 }
 
-# Let's Encrypt Production ClusterIssuer
+# DigitalOcean API token secret for cert-manager DNS01 solver
+resource "kubernetes_secret" "do_dns_cert_manager" {
+  metadata {
+    name      = "digitalocean-dns"
+    namespace = "cert-manager"
+  }
+
+  data = {
+    access-token = var.do_token
+  }
+
+  depends_on = [helm_release.cert_manager]
+}
+
+# Let's Encrypt Production ClusterIssuer using DNS01 via DigitalOcean
 resource "kubectl_manifest" "letsencrypt_cluster_issuer" {
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
@@ -40,10 +54,15 @@ resource "kubectl_manifest" "letsencrypt_cluster_issuer" {
         privateKeySecretRef:
           name: letsencrypt-prod-account-key
         solvers:
-        - http01:
-            ingress:
-              class: nginx
+        - dns01:
+            digitalocean:
+              tokenSecretRef:
+                name: digitalocean-dns
+                key: access-token
   YAML
 
-  depends_on = [time_sleep.wait_for_cert_manager]
+  depends_on = [
+    time_sleep.wait_for_cert_manager,
+    kubernetes_secret.do_dns_cert_manager,
+  ]
 }

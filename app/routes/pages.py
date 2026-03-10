@@ -3,7 +3,7 @@ Page Routes
 Handles rendering of HTML pages (landing page, editor, etc.)
 """
 
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from app.utils.logger import setup_logger
@@ -110,6 +110,25 @@ def pricing():
     """
     return render_template('pricing.html',
                           stripe_publishable_key=current_app.config.get('STRIPE_PUBLISHABLE_KEY'))
+
+
+@bp.route('/demo')
+def demo_page():
+    """
+    Public demo preview page
+
+    Returns:
+        Rendered demo preview HTML
+    """
+    try:
+        return render_template('demo.html')
+    except Exception as e:
+        # Log and return a friendly JSON error when demo fails to render
+        logger.exception(f"Error rendering demo page: {str(e)}")
+        from flask import current_app
+        if current_app.config.get('DEBUG') or current_app.config.get('FLASK_ENV') == 'development':
+            return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+        return jsonify({'error': 'Internal server error', 'message': 'An unexpected error occurred'}), 500
 
 
 @bp.route('/dashboard')

@@ -44,8 +44,6 @@ env:
   TF_VAR_docker_registry_password: ${{ secrets.GHCR_PAT }}
   TF_VAR_docker_registry_email: ${{ secrets.DOCKER_REGISTRY_EMAIL }}
   TF_VAR_letsencrypt_email: ${{ secrets.LETSENCRYPT_EMAIL }}
-  TF_VAR_zerossl_eab_hmac_key: ${{ secrets.ZEROSSL_EAB_HMAC_KEY }}
-  TF_VAR_zerossl_eab_kid: ${{ secrets.ZEROSSL_EAB_KID }}
   TF_VAR_domain_name: ${{ secrets.DOMAIN_NAME }}
   # OAuth Configuration
   TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -54,8 +52,14 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
   TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+  TF_VAR_email_alert: ${{ secrets.EMAIL_ALERT }}
+  TF_VAR_slack_url: ${{ secrets.SLACK_URL }}
 
 jobs:
+  # Build and push Docker image with SHA-based versioning
+  # The primary tag format is: {branch}-{short-sha} (e.g., "main-abc1234")
+  # This tag is passed to Terraform via TF_VAR_docker_tag to ensure
+  # consistent, version-pinned deployments (no "latest" tag usage)
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
@@ -65,6 +69,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-version: ${{ steps.meta.outputs.version }}
+      docker-tag: ${{ steps.extract-tag.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -90,7 +95,8 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-,format=short
+            type=sha,prefix={{branch}}-,format=short,enable=${{ github.event_name != 'pull_request' }}
+            type=sha,prefix=pr-,format=short,enable=${{ github.event_name == 'pull_request' }}
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=TFVisualizer
@@ -111,6 +117,21 @@ jobs:
 
       - name: Image digest
         run: echo "Image pushed with tags:${{ steps.meta.outputs.tags }}"
+
+      - name: Extract primary tag for Terraform
+        id: extract-tag
+        run: |
+          # Sanitize ref_name: replace any character invalid in a Docker tag with '-',
+          # then strip leading hyphens so we never produce a tag like "-abc1234".
+          REF_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g' | sed 's/^-*//')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          if [ -n "$REF_NAME" ]; then
+            PRIMARY_TAG="${REF_NAME}-${SHORT_SHA}"
+          else
+            PRIMARY_TAG="${SHORT_SHA}"
+          fi
+          echo "docker-tag=${PRIMARY_TAG}" >> $GITHUB_OUTPUT
+          echo "Using Docker tag for Terraform: ${PRIMARY_TAG}"
 
   terraform-validate:
     name: Validate Terraform
@@ -141,8 +162,10 @@ jobs:
   terraform-plan:
     name: Plan Terraform Changes
     runs-on: ubuntu-latest
-    needs: terraform-validate
+    needs: [build-and-push, terraform-validate]
     if: github.event_name == 'pull_request' || github.event_name == 'push'
+    env:
+      TF_VAR_docker_tag: ${{ needs.build-and-push.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -157,13 +180,24 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
 
-      # - name: Terraform Init 
+      # - name: Terraform Init
       #   working-directory: ${{ env.TF_WORKING_DIR }}
       #   run: terraform init
+
+      - name: Log Docker Tag for Planning
+        run: |
+          echo "==========================================="
+          echo "Planning with Docker image tag: ${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "==========================================="
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
+
+      - name: Convert Plan to Text
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform show -no-color tfplan > tfplan.txt
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4
@@ -171,33 +205,6 @@ jobs:
           name: terraform-plan
           path: ${{ env.TF_WORKING_DIR }}/tfplan
           retention-days: 5
-
-      - name: Comment PR with Plan
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('${{ env.TF_WORKING_DIR }}/tfplan.txt', 'utf8');
-            const output = `#### Terraform Plan 📝
-
-            <details><summary>Show Plan</summary>
-
-            \`\`\`terraform
-            ${plan}
-            \`\`\`
-
-            </details>
-
-            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
 
   terraform-apply:
     name: Apply Terraform Changes
@@ -210,6 +217,8 @@ jobs:
     environment:
       name: production
       url: https://tfvisualizer.com
+    env:
+      TF_VAR_docker_tag: ${{ needs.build-and-push.outputs.docker-tag }}
 
     steps:
       - name: Checkout code
@@ -229,6 +238,13 @@ jobs:
         with:
           name: terraform-plan
           path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Log Docker Tag for Deployment
+        run: |
+          echo "==========================================="
+          echo "Deploying with Docker image tag: ${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "Full image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "==========================================="
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -250,18 +266,95 @@ jobs:
         run: |
           terraform output -raw kubeconfig > kubeconfig.yaml || echo "Kubeconfig output not available"
 
+      # DISABLED: kubeseal CLI not needed - using direct secrets
+      # - name: Install kubeseal CLI
+      #   if: hashFiles('terraform/kubeconfig.yaml') != ''
+      #   run: |
+      #     KUBESEAL_VERSION='0.26.0'
+      #     wget "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
+      #     tar -xvzf kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz kubeseal
+      #     sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+      #     kubeseal --version
+
+      - name: Create and Deploy Secret (Direct)
+        if: hashFiles('terraform/kubeconfig.yaml') != ''
+        env:
+          KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
+          SECRET_KEY: ${{ secrets.APP_SECRET_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_ID_PRO: ${{ secrets.STRIPE_PRICE_ID_PRO }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          S3_BUCKET_NAME: tfvisualizer-files
+          AWS_REGION: nyc3
+          NAMESPACE: tfvisualizer
+          FLASK_ENV: production
+        run: |
+          # Create env file from secrets
+          cat > /tmp/app-secrets.env <<EOF
+          FLASK_ENV=${FLASK_ENV}
+          PORT=8080
+          SECRET_KEY=${SECRET_KEY}
+          JWT_SECRET=${JWT_SECRET}
+          DATABASE_URL=postgresql://tfuser:${DB_PASSWORD}@postgres.${NAMESPACE}.svc.cluster.local:5432/tfvisualizer
+          DB_HOST=postgres.${NAMESPACE}.svc.cluster.local
+          DB_PORT=5432
+          DB_NAME=tfvisualizer
+          DB_USER=tfuser
+          DB_PASSWORD=${DB_PASSWORD}
+          REDIS_URL=redis://:${REDIS_PASSWORD}@redis.${NAMESPACE}.svc.cluster.local:6379
+          REDIS_HOST=redis.${NAMESPACE}.svc.cluster.local
+          REDIS_PORT=6379
+          REDIS_PASSWORD=${REDIS_PASSWORD}
+          STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+          STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+          STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+          STRIPE_PRICE_ID_PRO=${STRIPE_PRICE_ID_PRO}
+          STRIPE_SUCCESS_URL=https://${DOMAIN_NAME}/subscription/success
+          STRIPE_CANCEL_URL=https://${DOMAIN_NAME}/pricing
+          S3_BUCKET_NAME=${S3_BUCKET_NAME}
+          AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          AWS_REGION=${AWS_REGION}
+          GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+          GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+          EOF
+
+          # Create the secret directly (no sealing needed)
+          echo "Creating secret directly..."
+          kubectl create secret generic tfvisualizer-config \
+            --from-env-file=/tmp/app-secrets.env \
+            --namespace=tfvisualizer \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          # Verify the secret was created
+          echo "Verifying secret..."
+          kubectl get secret tfvisualizer-config -n tfvisualizer
+
+          # Clean up sensitive files
+          rm -f /tmp/app-secrets.env
+
       - name: Deploy to Kubernetes
         if: hashFiles('terraform/kubeconfig.yaml') != ''
         env:
           KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
         run: |
-          # Extract image tag from build job
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-$(git rev-parse --short HEAD)"
+          echo "=========================================="
+          echo "Verifying rollout of: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.docker-tag }}"
+          echo "=========================================="
 
-          # Update deployment image
-          kubectl config use-context do-nyc3-tfvisualizer-production-k8s || echo "Context not available"
-          kubectl set image deployment/tfvisualizer-app tfvisualizer=$IMAGE_TAG -n tfvisualizer || echo "Deployment update skipped"
-          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m || echo "Rollout status check skipped"
+          # The deployment image was already updated by terraform apply via TF_VAR_docker_tag.
+          # Wait for that rollout to finish rather than re-applying the manifest
+          # (kubectl apply conflicts with Terraform's field ownership of the deployment).
+          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m
 
   terraform-destroy:
     name: Destroy Terraform Resources

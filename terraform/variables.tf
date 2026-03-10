@@ -32,7 +32,7 @@ variable "kubernetes_version" {
 variable "kubernetes_node_size" {
   description = "Node size for Kubernetes worker nodes"
   type        = string
-  default     = "s-2vcpu-4gb"
+  default     = "s-4vcpu-16gb"
 }
 
 variable "kubernetes_node_count" {
@@ -50,13 +50,13 @@ variable "kubernetes_autoscale" {
 variable "kubernetes_min_nodes" {
   description = "Minimum nodes for autoscaling"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "kubernetes_max_nodes" {
   description = "Maximum nodes for autoscaling"
   type        = number
-  default     = 5
+  default     = 4
 }
 
 # PostgreSQL Configuration (running on Kubernetes)
@@ -112,31 +112,49 @@ variable "alert_email" {
 variable "app_replicas" {
   description = "Number of application replicas"
   type        = number
-  default     = 2
+  default     = 1
 }
 
-variable "app_min_replicas" {
-  description = "Minimum replicas for HPA"
-  type        = number
-  default     = 2
+variable "vpa_update_mode" {
+  description = "VPA update mode: Off, Initial, Recreate, or Auto"
+  type        = string
+  default     = "Auto"
 }
 
-variable "app_max_replicas" {
-  description = "Maximum replicas for HPA"
-  type        = number
-  default     = 10
+variable "vpa_min_cpu" {
+  description = "Minimum CPU for VPA"
+  type        = string
+  default     = "100m"
+}
+
+variable "vpa_max_cpu" {
+  description = "Maximum CPU for VPA"
+  type        = string
+  default     = "2000m"
+}
+
+variable "vpa_min_memory" {
+  description = "Minimum memory for VPA"
+  type        = string
+  default     = "128Mi"
+}
+
+variable "vpa_max_memory" {
+  description = "Maximum memory for VPA"
+  type        = string
+  default     = "4Gi"
 }
 
 variable "app_cpu_request" {
   description = "CPU request for application pods"
   type        = string
-  default     = "250m"
+  default     = "512m"
 }
 
 variable "app_cpu_limit" {
   description = "CPU limit for application pods"
   type        = string
-  default     = "1000m"
+  default     = "1250m"
 }
 
 variable "app_memory_request" {
@@ -148,7 +166,7 @@ variable "app_memory_request" {
 variable "app_memory_limit" {
   description = "Memory limit for application pods"
   type        = string
-  default     = "2Gi"
+  default     = "1250Mi"
 }
 
 # Docker Registry Configuration
@@ -165,9 +183,13 @@ variable "docker_image" {
 }
 
 variable "docker_tag" {
-  description = "Docker image tag"
+  description = "Docker image tag (must be a specific version, not 'latest')"
   type        = string
-  default     = "latest"
+
+  validation {
+    condition     = var.docker_tag != "" && var.docker_tag != "latest"
+    error_message = "docker_tag must be a specific version tag, not 'latest' or blank."
+  }
 }
 
 variable "docker_registry_username" {
@@ -283,11 +305,21 @@ variable "kubernetes_quick_provision" {
 variable "kubernetes_quick_node_size" {
   description = "Node size to use when quick provision is enabled"
   type        = string
-  default     = "s-1vcpu-2gb"
+  default     = "s-1vcpu-4gb"
 }
 
 variable "kubernetes_quick_node_count" {
   description = "Initial node count when quick provision is enabled"
   type        = number
-  default     = 1
+  default     = 2
+}
+
+variable "slack_url" {
+  description = "Slack URL for alerts"
+  type        = string
+}
+
+variable "email_alert" {
+  description = "email address for alerts"
+  type        = string
 }

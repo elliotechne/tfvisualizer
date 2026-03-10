@@ -4,6 +4,7 @@ A Python Flask application for visual Terraform infrastructure design with Strip
 """
 
 import os
+import os
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -26,9 +27,15 @@ logger = setup_logger(__name__)
 
 def create_app(config_class=Config):
     """Application factory pattern"""
+    # Resolve absolute paths for templates/static so the app works when run from
+    # different current working directories (safer for local development and demos)
+    package_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    templates_path = os.path.join(package_dir, 'templates')
+    static_path = os.path.join(package_dir, 'static')
+
     app = Flask(__name__,
-                static_folder='../static',
-                template_folder='../templates')
+                static_folder=static_path,
+                template_folder=templates_path)
 
     # Load configuration
     app.config.from_object(config_class)

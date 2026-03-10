@@ -1,0 +1,53 @@
+name: SOC2 Compliance Check
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  checkov:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Checkov
+        run: pip install checkov
+
+      - name: Run Checkov SOC2 compliance scan
+        run: |
+          checkov -d . \
+            --external-checks-dir ./checkov_policies \
+            --framework terraform \
+            -o cli \
+            --compact
+        continue-on-error: true
+
+      - name: Generate SARIF report
+        run: |
+          checkov -d . \
+            --external-checks-dir ./checkov_policies \
+            --framework terraform \
+            -o sarif \
+            --output-file-path . \
+            --compact
+        continue-on-error: true
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results_sarif.sarif
+          category: checkov-soc2

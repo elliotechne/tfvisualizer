@@ -16,7 +16,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
     DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-    PORT = int(os.getenv('PORT', 80))
+    # Use 8080 as a safer default for local development (no root required)
+    PORT = int(os.getenv('PORT', 8080))
 
     # Database
     SQLALCHEMY_DATABASE_URI = os.getenv(

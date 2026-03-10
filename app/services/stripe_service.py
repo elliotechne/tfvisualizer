@@ -19,9 +19,14 @@ class StripeService:
     def __init__(self):
         """Initialize Stripe with API key"""
         api_key = current_app.config.get('STRIPE_SECRET_KEY')
+        # For local demo use, do not raise an exception when Stripe is not configured.
+        # Instead, set the API key if present and log a warning otherwise. This
+        # allows demo flows and pages to render without configured Stripe keys.
         if not api_key or api_key == 'sk_test_YOUR_STRIPE_SECRET_KEY_HERE':
-            raise ValueError("Stripe API key is not configured")
-        stripe.api_key = api_key
+            logger.warning("Stripe API key is not configured; Stripe features will be disabled in this environment")
+            stripe.api_key = None
+        else:
+            stripe.api_key = api_key
 
     def create_customer(self, user: User) -> str:
         """
