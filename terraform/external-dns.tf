@@ -6,7 +6,7 @@ resource "kubernetes_secret" "external_dns_token" {
   }
 
   data = {
-    token = var.do_token
+    DO_TOKEN = var.do_token
   }
 
   type = "Opaque"
@@ -53,7 +53,7 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "env[0].valueFrom.secretKeyRef.key"
-    value = "token"
+    value = "DO_TOKEN"
   }
 
   set {
