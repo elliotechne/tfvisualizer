@@ -184,6 +184,9 @@ resource "kubernetes_deployment" "app" {
           app         = "tfvisualizer"
           environment = var.environment
         }
+        annotations = {
+          "sidecar.istio.io/rewriteAppHTTPProbers" = "false"
+        }
       }
 
       spec {
