@@ -22,7 +22,7 @@ spec:
         app: tfvisualizer
         environment: production
       annotations:
-        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+        sidecar.istio.io/rewriteAppHTTPProbers: "false"
     spec:
       containers:
       - name: tfvisualizer
