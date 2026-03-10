@@ -271,8 +271,8 @@ resource "kubernetes_deployment" "app" {
               port = 8080
             }
             initial_delay_seconds = 0
-            period_seconds        = 3
-            timeout_seconds       = 2
+            period_seconds        = 5
+            timeout_seconds       = 5
             failure_threshold     = 30
           }
         }
