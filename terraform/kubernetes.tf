@@ -185,7 +185,7 @@ resource "kubernetes_deployment" "app" {
           environment = var.environment
         }
         annotations = {
-          "sidecar.istio.io/rewriteAppHTTPProbers" = "false"
+          "sidecar.istio.io/inject" = "false"
         }
       }
 
