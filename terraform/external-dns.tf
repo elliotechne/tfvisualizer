@@ -62,6 +62,26 @@ resource "helm_release" "external_dns" {
   }
 
   set {
+    name  = "managedRecordTypes[0]"
+    value = "A"
+  }
+
+  set {
+    name  = "managedRecordTypes[1]"
+    value = "AAAA"
+  }
+
+  set {
+    name  = "managedRecordTypes[2]"
+    value = "CNAME"
+  }
+
+  set {
+    name  = "managedRecordTypes[3]"
+    value = "TXT"
+  }
+
+  set {
     name  = "sources[0]"
     value = "ingress"
   }
