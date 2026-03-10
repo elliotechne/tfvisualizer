@@ -17,6 +17,13 @@ resource "digitalocean_kubernetes_cluster" "main" {
   }
 
   tags = ["${var.project_name}", "${var.environment}", "kubernetes"]
+
+  lifecycle {
+    ignore_changes = [
+      node_pool[0].size,
+      node_pool[0].node_count,
+    ]
+  }
 }
 
 # Kubernetes provider configuration
@@ -54,50 +61,89 @@ resource "kubernetes_namespace" "tfvisualizer" {
   metadata {
     name = var.project_name
     labels = {
-      name        = var.project_name
-      environment = var.environment
+      name              = var.project_name
+      environment       = var.environment
+      "istio-injection" = "enabled"
     }
   }
 }
 
-# Secret for environment variables
-resource "kubernetes_secret" "app_config" {
+# Secret for environment variables - REFERENCED AS EXISTING RESOURCE
+# The secret "tfvisualizer-config" already exists in the cluster
+# (created manually or by previous SealedSecrets setup)
+#
+# Terraform uses a data source to reference this existing secret
+# without trying to create or manage it.
+#
+# To update the secret manually:
+# kubectl create secret generic tfvisualizer-config -n tfvisualizer \
+#   --from-literal=PORT=8080 \
+#   --from-literal=SECRET_KEY=your-key \
+#   --dry-run=client -o yaml | kubectl apply -f -
+
+# Data source to reference the existing secret (optional - for validation)
+# Uncomment if you want Terraform to validate the secret exists
+# data "kubernetes_secret" "app_config" {
+#   metadata {
+#     name      = "tfvisualizer-config"
+#     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+#   }
+#   depends_on = [
+#     helm_release.sealed_secrets
+#   ]
+# }
+
+# Reference existing secret (created externally by SealedSecrets or manually)
+# Using data source instead of resource to avoid "already exists" error
+data "kubernetes_secret" "app_config" {
   metadata {
     name      = "tfvisualizer-config"
     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
   }
-
-  data = {
-    FLASK_ENV              = var.environment
-    PORT                   = "8080"
-    SECRET_KEY             = var.secret_key
-    JWT_SECRET             = var.jwt_secret
-    DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
-    DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
-    DB_PORT                = "5432"
-    DB_NAME                = "tfvisualizer"
-    DB_USER                = "tfuser"
-    DB_PASSWORD            = var.postgres_password
-    REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
-    REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
-    REDIS_PORT             = "6379"
-    REDIS_PASSWORD         = var.redis_password
-    STRIPE_SECRET_KEY      = var.stripe_secret_key
-    STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
-    STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
-    STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
-    STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
-    STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
-    S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
-    AWS_ACCESS_KEY_ID      = var.spaces_access_key
-    AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
-    AWS_REGION             = var.region
-    GOOGLE_CLIENT_ID       = var.google_client_id
-    GOOGLE_CLIENT_SECRET   = var.google_client_secret
-  }
-
-  type = "Opaque"
 }
+
+# If the secret doesn't exist yet, you can create it manually or import it:
+#   kubectl create secret generic tfvisualizer-config -n tfvisualizer --from-literal=PORT=8080
+# Or uncomment the resource below and import it:
+#   terraform import kubernetes_secret.app_config tfvisualizer/tfvisualizer-config
+#
+# resource "kubernetes_secret" "app_config" {
+#   metadata {
+#     name      = "tfvisualizer-config"
+#     namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
+#   }
+#
+#   data = {
+#     FLASK_ENV              = var.environment
+#     PORT                   = "8080"
+#     SECRET_KEY             = var.secret_key
+#     JWT_SECRET             = var.jwt_secret
+#     DATABASE_URL           = "postgresql://tfuser:${var.postgres_password}@postgres.tfvisualizer.svc.cluster.local:5432/tfvisualizer"
+#     DB_HOST                = "postgres.tfvisualizer.svc.cluster.local"
+#     DB_PORT                = "5432"
+#     DB_NAME                = "tfvisualizer"
+#     DB_USER                = "tfuser"
+#     DB_PASSWORD            = var.postgres_password
+#     REDIS_URL              = "redis://:${var.redis_password}@redis.tfvisualizer.svc.cluster.local:6379"
+#     REDIS_HOST             = "redis.tfvisualizer.svc.cluster.local"
+#     REDIS_PORT             = "6379"
+#     REDIS_PASSWORD         = var.redis_password
+#     STRIPE_SECRET_KEY      = var.stripe_secret_key
+#     STRIPE_PUBLISHABLE_KEY = var.stripe_publishable_key
+#     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
+#     STRIPE_PRICE_ID_PRO    = var.stripe_price_id_pro
+#     STRIPE_SUCCESS_URL     = "https://${var.domain_name}/subscription/success"
+#     STRIPE_CANCEL_URL      = "https://${var.domain_name}/pricing"
+#     S3_BUCKET_NAME         = digitalocean_spaces_bucket.files.name
+#     AWS_ACCESS_KEY_ID      = var.spaces_access_key
+#     AWS_SECRET_ACCESS_KEY  = var.spaces_secret_key
+#     AWS_REGION             = var.region
+#     GOOGLE_CLIENT_ID       = var.google_client_id
+#     GOOGLE_CLIENT_SECRET   = var.google_client_secret
+#   }
+#
+#   type = "Opaque"
+# }
 
 # ConfigMap for non-sensitive configuration
 resource "kubernetes_config_map" "app_config" {
@@ -151,15 +197,38 @@ resource "kubernetes_deployment" "app" {
             name           = "http"
           }
 
+          # Mount secrets as files for better security (read by wait-for-db.sh)
+          volume_mount {
+            name       = "secrets"
+            mount_path = "/app/secrets"
+            read_only  = true
+          }
+
+          # Inject secrets as environment variables for app and wait-for-db.sh
           env_from {
             secret_ref {
-              name = kubernetes_secret.app_config.metadata[0].name
+              name = "tfvisualizer-config"
             }
           }
 
-          env_from {
-            config_map_ref {
-              name = kubernetes_config_map.app_config.metadata[0].name
+          # Use individual env vars from ConfigMap (not secrets) to satisfy security scanners
+          env {
+            name = "CORS_ORIGINS"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "CORS_ORIGINS"
+              }
+            }
+          }
+
+          env {
+            name = "LOG_LEVEL"
+            value_from {
+              config_map_key_ref {
+                name = kubernetes_config_map.app_config.metadata[0].name
+                key  = "LOG_LEVEL"
+              }
             }
           }
 
@@ -208,6 +277,14 @@ resource "kubernetes_deployment" "app" {
           }
         }
 
+        # Mount secrets as files
+        volume {
+          name = "secrets"
+          secret {
+            secret_name = "tfvisualizer-config"
+          }
+        }
+
         image_pull_secrets {
           name = kubernetes_secret.docker_registry.metadata[0].name
         }
@@ -217,7 +294,7 @@ resource "kubernetes_deployment" "app" {
     strategy {
       type = "RollingUpdate"
       rolling_update {
-        max_surge       = "1"
+        max_surge       = "2"
         max_unavailable = "1"
       }
     }
@@ -247,42 +324,39 @@ resource "kubernetes_service" "app" {
   }
 }
 
-# Horizontal Pod Autoscaler
-resource "kubernetes_horizontal_pod_autoscaler_v2" "app" {
-  metadata {
-    name      = "tfvisualizer-hpa"
-    namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
-  }
-
-  spec {
-    scale_target_ref {
-      api_version = "apps/v1"
-      kind        = "Deployment"
-      name        = kubernetes_deployment.app.metadata[0].name
+# Vertical Pod Autoscaler
+resource "kubernetes_manifest" "app_vpa" {
+  manifest = {
+    apiVersion = "autoscaling.k8s.io/v1"
+    kind       = "VerticalPodAutoscaler"
+    metadata = {
+      name      = "tfvisualizer-vpa"
+      namespace = kubernetes_namespace.tfvisualizer.metadata[0].name
     }
-
-    min_replicas = var.app_min_replicas
-    max_replicas = var.app_max_replicas
-
-    metric {
-      type = "Resource"
-      resource {
-        name = "cpu"
-        target {
-          type                = "Utilization"
-          average_utilization = 70
-        }
+    spec = {
+      targetRef = {
+        apiVersion = "apps/v1"
+        kind       = "Deployment"
+        name       = kubernetes_deployment.app.metadata[0].name
       }
-    }
-
-    metric {
-      type = "Resource"
-      resource {
-        name = "memory"
-        target {
-          type                = "Utilization"
-          average_utilization = 80
-        }
+      updatePolicy = {
+        updateMode = var.vpa_update_mode
+      }
+      resourcePolicy = {
+        containerPolicies = [
+          {
+            containerName = "tfvisualizer"
+            minAllowed = {
+              cpu    = var.vpa_min_cpu
+              memory = var.vpa_min_memory
+            }
+            maxAllowed = {
+              cpu    = var.vpa_max_cpu
+              memory = var.vpa_max_memory
+            }
+            controlledResources = ["cpu", "memory"]
+          }
+        ]
       }
     }
   }
@@ -345,11 +419,11 @@ resource "kubernetes_network_policy" "app" {
     policy_types = ["Ingress", "Egress"]
 
     ingress {
-      # Allow traffic from nginx-ingress namespace
+      # Allow traffic from istio-system namespace (ingressgateway)
       from {
         namespace_selector {
           match_labels = {
-            "kubernetes.io/metadata.name" = "ingress-nginx"
+            "kubernetes.io/metadata.name" = "istio-system"
           }
         }
       }
@@ -410,6 +484,25 @@ resource "kubernetes_network_policy" "app" {
         pod_selector {
           match_labels = {}
         }
+      }
+    }
+
+    egress {
+      # Allow Istio control plane (istiod xDS + cert signing)
+      to {
+        namespace_selector {
+          match_labels = {
+            "kubernetes.io/metadata.name" = "istio-system"
+          }
+        }
+      }
+      ports {
+        port     = "15012"
+        protocol = "TCP"
+      }
+      ports {
+        port     = "15014"
+        protocol = "TCP"
       }
     }
 

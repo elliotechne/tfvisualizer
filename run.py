@@ -10,7 +10,8 @@ from app.main import create_app
 if __name__ == '__main__':
     app = create_app()
 
-    port = int(os.environ.get('PORT', 80))
+    # Default to 8080 for local development to avoid requiring root for port 80
+    port = int(os.environ.get('PORT', 8080))
     debug = os.environ.get('FLASK_ENV') == 'development'
 
     print(f"""

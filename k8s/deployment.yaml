@@ -7,15 +7,15 @@ metadata:
     app: tfvisualizer
     environment: production
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: tfvisualizer
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 2
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -25,7 +25,7 @@ spec:
       containers:
       - name: tfvisualizer
         image: ghcr.io/elliotechne/tfvisualizer:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
           name: http
@@ -38,10 +38,18 @@ spec:
         resources:
           requests:
             cpu: 250m
-            memory: 512Mi
+            memory: 256Mi
           limits:
             cpu: 1000m
-            memory: 2Gi
+            memory: 1Gi
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
         livenessProbe:
           httpGet:
             path: /health
@@ -66,24 +74,13 @@ kind: Service
 metadata:
   name: tfvisualizer-service
   namespace: tfvisualizer
-  annotations:
-    service.beta.kubernetes.io/do-loadbalancer-name: "tfvisualizer-production-lb"
-    service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
-    service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/health"
-    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
-    service.beta.kubernetes.io/do-loadbalancer-redirect-http-to-https: "true"
-    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: tfvisualizer
   ports:
   - name: http
     port: 80
-    targetPort: 8080
-    protocol: TCP
-  - name: https
-    port: 443
     targetPort: 8080
     protocol: TCP
 ---
@@ -97,7 +94,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: tfvisualizer-app
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 10
   metrics:
   - type: Resource
