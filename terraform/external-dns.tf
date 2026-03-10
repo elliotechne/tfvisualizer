@@ -67,48 +67,78 @@ resource "helm_release" "external_dns" {
   }
 
   set {
-    name  = "managedRecordTypes[0]"
-    value = "A"
+    name  = "args[0]"
+    value = "--log-level=info"
   }
 
   set {
-    name  = "managedRecordTypes[1]"
-    value = "AAAA"
+    name  = "args[1]"
+    value = "--log-format=json"
   }
 
   set {
-    name  = "managedRecordTypes[2]"
-    value = "CNAME"
+    name  = "args[2]"
+    value = "--interval=1m"
   }
 
   set {
-    name  = "managedRecordTypes[3]"
-    value = "TXT"
+    name  = "args[3]"
+    value = "--source=istio-gateway"
   }
 
   set {
-    name  = "sources[0]"
-    value = "istio-gateway"
+    name  = "args[4]"
+    value = "--source=service"
   }
 
   set {
-    name  = "sources[1]"
-    value = "service"
+    name  = "args[5]"
+    value = "--policy=sync"
   }
 
   set {
-    name  = "domainFilters[0]"
-    value = var.domain_name
+    name  = "args[6]"
+    value = "--registry=txt"
   }
 
   set {
-    name  = "txtOwnerId"
-    value = "${var.project_name}-${var.environment}"
+    name  = "args[7]"
+    value = "--managed-record-types=A"
   }
 
   set {
-    name  = "txtPrefix"
-    value = "external-dns-"
+    name  = "args[8]"
+    value = "--managed-record-types=AAAA"
+  }
+
+  set {
+    name  = "args[9]"
+    value = "--managed-record-types=CNAME"
+  }
+
+  set {
+    name  = "args[10]"
+    value = "--managed-record-types=TXT"
+  }
+
+  set {
+    name  = "args[11]"
+    value = "--txt-owner-id=${var.project_name}-${var.environment}"
+  }
+
+  set {
+    name  = "args[12]"
+    value = "--txt-prefix=external-dns-"
+  }
+
+  set {
+    name  = "args[13]"
+    value = "--domain-filter=${var.domain_name}"
+  }
+
+  set {
+    name  = "args[14]"
+    value = "--provider=digitalocean"
   }
 
   set {
