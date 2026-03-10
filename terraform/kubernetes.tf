@@ -206,6 +206,14 @@ resource "kubernetes_deployment" "app" {
             timeout_seconds       = 5
             failure_threshold     = 30
           }
+
+          lifecycle {
+            pre_stop {
+              exec {
+                command = ["/bin/sleep", "10"]
+              }
+            }
+          }
         }
 
         image_pull_secrets {
@@ -218,7 +226,7 @@ resource "kubernetes_deployment" "app" {
       type = "RollingUpdate"
       rolling_update {
         max_surge       = "1"
-        max_unavailable = "1"
+        max_unavailable = "0"
       }
     }
   }
