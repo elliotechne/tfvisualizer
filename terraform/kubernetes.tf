@@ -275,6 +275,14 @@ resource "kubernetes_deployment" "app" {
             timeout_seconds       = 5
             failure_threshold     = 30
           }
+
+          lifecycle {
+            pre_stop {
+              exec {
+                command = ["/bin/sleep", "10"]
+              }
+            }
+          }
         }
 
         # Mount secrets as files
@@ -295,7 +303,7 @@ resource "kubernetes_deployment" "app" {
       type = "RollingUpdate"
       rolling_update {
         max_surge       = "2"
-        max_unavailable = "1"
+        max_unavailable = "0"
       }
     }
   }
