@@ -6,7 +6,7 @@ resource "kubernetes_secret" "external_dns_token" {
   }
 
   data = {
-    token = var.do_token
+    DO_TOKEN = var.do_token
   }
 
   type = "Opaque"
@@ -53,7 +53,7 @@ resource "helm_release" "external_dns" {
 
   set {
     name  = "env[0].valueFrom.secretKeyRef.key"
-    value = "token"
+    value = "DO_TOKEN"
   }
 
   set {
@@ -67,13 +67,73 @@ resource "helm_release" "external_dns" {
   }
 
   set {
-    name  = "sources[0]"
-    value = "istio-gateway"
+    name  = "args[0]"
+    value = "--log-level=info"
   }
 
   set {
-    name  = "sources[1]"
-    value = "service"
+    name  = "args[1]"
+    value = "--log-format=json"
+  }
+
+  set {
+    name  = "args[2]"
+    value = "--interval=1m"
+  }
+
+  set {
+    name  = "args[3]"
+    value = "--source=istio-gateway"
+  }
+
+  set {
+    name  = "args[4]"
+    value = "--source=service"
+  }
+
+  set {
+    name  = "args[5]"
+    value = "--policy=sync"
+  }
+
+  set {
+    name  = "args[6]"
+    value = "--registry=txt"
+  }
+
+  set {
+    name  = "args[7]"
+    value = "--managed-record-types=A"
+  }
+
+  set {
+    name  = "args[8]"
+    value = "--managed-record-types=AAAA"
+  }
+
+  set {
+    name  = "args[9]"
+    value = "--managed-record-types=CNAME"
+  }
+
+  set {
+    name  = "args[10]"
+    value = "--managed-record-types=TXT"
+  }
+
+  set {
+    name  = "args[11]"
+    value = "--txt-owner-id=${var.project_name}-${var.environment}"
+  }
+
+  set {
+    name  = "args[12]"
+    value = "--txt-prefix=external-dns-"
+  }
+
+  set {
+    name  = "args[13]"
+    value = "--domain-filter=${var.domain_name}"
   }
 
   set {
@@ -82,13 +142,8 @@ resource "helm_release" "external_dns" {
   }
 
   set {
-    name  = "txtOwnerId"
-    value = "${var.project_name}-${var.environment}"
-  }
-
-  set {
-    name  = "txtPrefix"
-    value = "external-dns-"
+    name  = "args[14]"
+    value = "--provider=digitalocean"
   }
 
   set {

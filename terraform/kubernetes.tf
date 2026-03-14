@@ -170,7 +170,8 @@ resource "kubernetes_deployment" "app" {
   }
 
   spec {
-    replicas = var.app_replicas
+    replicas                  = var.app_replicas
+    progress_deadline_seconds = 300
 
     selector {
       match_labels = {
@@ -183,6 +184,9 @@ resource "kubernetes_deployment" "app" {
         labels = {
           app         = "tfvisualizer"
           environment = var.environment
+        }
+        annotations = {
+          "sidecar.istio.io/inject" = "false"
         }
       }
 
@@ -271,9 +275,17 @@ resource "kubernetes_deployment" "app" {
               port = 8080
             }
             initial_delay_seconds = 0
-            period_seconds        = 3
-            timeout_seconds       = 2
+            period_seconds        = 5
+            timeout_seconds       = 5
             failure_threshold     = 30
+          }
+
+          lifecycle {
+            pre_stop {
+              exec {
+                command = ["/bin/sleep", "10"]
+              }
+            }
           }
         }
 
@@ -294,8 +306,8 @@ resource "kubernetes_deployment" "app" {
     strategy {
       type = "RollingUpdate"
       rolling_update {
-        max_surge       = "2"
-        max_unavailable = "1"
+        max_surge       = "1"
+        max_unavailable = "0"
       }
     }
   }

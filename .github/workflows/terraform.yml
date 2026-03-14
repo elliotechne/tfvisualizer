@@ -58,6 +58,7 @@ jobs:
       image-tag: ${{ steps.meta.outputs.tags }}
       image-version: ${{ steps.meta.outputs.version }}
       docker-tag: ${{ steps.extract-tag.outputs.docker-tag }}
+      app-changed: ${{ steps.detect-changes.outputs.app-changed }}
 
     steps:
       - name: Checkout code
@@ -105,6 +106,16 @@ jobs:
 
       - name: Image digest
         run: echo "Image pushed with tags:${{ steps.meta.outputs.tags }}"
+
+      - name: Detect app/Dockerfile changes
+        id: detect-changes
+        run: |
+          git fetch --depth=2 origin ${{ github.ref_name }} 2>/dev/null || true
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE '^(Dockerfile|app/)'; then
+            echo "app-changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "app-changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Extract primary tag for Terraform
         id: extract-tag
@@ -198,7 +209,7 @@ jobs:
     name: Apply Terraform Changes
     runs-on: ubuntu-latest
     needs: [build-and-push, terraform-plan]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.build-and-push.outputs.app-changed == 'true'
     permissions:
       contents: read
       packages: read
@@ -331,7 +342,7 @@ jobs:
           rm -f /tmp/app-secrets.env
 
       - name: Deploy to Kubernetes
-        if: hashFiles('terraform/kubeconfig.yaml') != ''
+        if: hashFiles('terraform/kubeconfig.yaml') != '' && needs.build-and-push.outputs.app-changed == 'true'
         env:
           KUBECONFIG: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
         run: |
@@ -342,7 +353,7 @@ jobs:
           # The deployment image was already updated by terraform apply via TF_VAR_docker_tag.
           # Wait for that rollout to finish rather than re-applying the manifest
           # (kubectl apply conflicts with Terraform's field ownership of the deployment).
-          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=5m
+          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=300s
 
   terraform-destroy:
     name: Destroy Terraform Resources
