@@ -266,7 +266,7 @@ resource "kubernetes_deployment" "app" {
             initial_delay_seconds = 15
             period_seconds        = 5
             timeout_seconds       = 3
-            failure_threshold     = 2
+            failure_threshold     = 3
           }
 
           startup_probe {
@@ -311,6 +311,8 @@ resource "kubernetes_deployment" "app" {
       }
     }
   }
+
+  wait_for_rollout = false
 }
 
 # Service for TFVisualizer application
