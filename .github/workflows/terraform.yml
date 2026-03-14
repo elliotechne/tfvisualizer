@@ -5,26 +5,10 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'terraform/**'
-      - 'app/**'
-      - 'templates/**'
-      - 'static/**'
-      - 'requirements.txt'
-      - 'Dockerfile'
-      - '.github/workflows/terraform.yml'
   pull_request:
     branches:
       - main
       - develop
-    paths:
-      - 'terraform/**'
-      - 'app/**'
-      - 'templates/**'
-      - 'static/**'
-      - 'requirements.txt'
-      - 'Dockerfile'
-      - '.github/workflows/terraform.yml'
   workflow_dispatch:
 
 env:
