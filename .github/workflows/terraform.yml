@@ -341,7 +341,20 @@ jobs:
           # The deployment image was already updated by terraform apply via TF_VAR_docker_tag.
           # Wait for that rollout to finish rather than re-applying the manifest
           # (kubectl apply conflicts with Terraform's field ownership of the deployment).
-          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=600s
+          kubectl rollout status deployment/tfvisualizer-app -n tfvisualizer --timeout=600s || {
+            echo "==================== ROLLOUT FAILED ===================="
+            echo "--- Deployment description ---"
+            kubectl describe deployment tfvisualizer-app -n tfvisualizer
+            echo "--- Pod status ---"
+            kubectl get pods -n tfvisualizer -l app=tfvisualizer -o wide
+            echo "--- Pod events ---"
+            kubectl get events -n tfvisualizer --sort-by='.lastTimestamp' | tail -30
+            echo "--- Pod logs (current) ---"
+            kubectl logs -n tfvisualizer -l app=tfvisualizer --tail=100 || true
+            echo "--- Pod logs (previous/crashed) ---"
+            kubectl logs -n tfvisualizer -l app=tfvisualizer --previous --tail=100 || true
+            exit 1
+          }
 
   terraform-destroy:
     name: Destroy Terraform Resources
