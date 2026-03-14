@@ -162,7 +162,6 @@ jobs:
     name: Plan Terraform Changes
     runs-on: ubuntu-latest
     needs: [build-and-push, terraform-validate]
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
     env:
       TF_VAR_docker_tag: ${{ needs.build-and-push.outputs.docker-tag }}
 
