@@ -171,7 +171,7 @@ resource "kubernetes_deployment" "app" {
 
   spec {
     replicas                  = var.app_replicas
-    progress_deadline_seconds = 300
+    progress_deadline_seconds = 600
 
     selector {
       match_labels = {
