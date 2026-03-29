@@ -2,11 +2,17 @@
 Global Error Handlers
 """
 
-from flask import jsonify
+from flask import jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def _wants_html():
+    """Return True if the client prefers an HTML response (i.e. browser request)."""
+    best = request.accept_mimetypes.best_match(['text/html', 'application/json'])
+    return best == 'text/html'
 
 
 def register_error_handlers(app):
@@ -61,6 +67,16 @@ def register_error_handlers(app):
             'error': 'Internal server error',
             'message': 'An unexpected error occurred'
         }), 500
+
+    @app.errorhandler(503)
+    def service_unavailable(error):
+        """Serve a lightweight page for browser clients when the service is overloaded."""
+        if _wants_html():
+            return render_template('503.html'), 503
+        return jsonify({
+            'error': 'Service unavailable',
+            'message': 'The service is temporarily unavailable. Please try again later.'
+        }), 503
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(error):
