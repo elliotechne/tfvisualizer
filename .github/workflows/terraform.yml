@@ -235,7 +235,7 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan -parallelism=20
 
       - name: Terraform Output
         working-directory: ${{ env.TF_WORKING_DIR }}
